@@ -73,11 +73,15 @@ with st.sidebar:
     sac.MenuItem('Ask Me Anything', icon='chat-dots')
     ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
 
-    st.header("Contact Information")
-    st.write("📞 +6011-1122 1128")
-    st.write("✉️ samsontands@gmail.com")
-    st.write("📍 Kuala Lumpur, Malaysia")
-    st.write("🔗 [LinkedIn](https://www.linkedin.com/in/samsonthedatascientist/)")
+    st.markdown("<h3 style='text-align: left;'>Contact Information</h3>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='text-align: left;'>
+    📞 +6011-1122 1128<br>
+    ✉️ samsontands@gmail.com<br>
+    📍 Kuala Lumpur, Malaysia<br>
+    🔗 <a href="https://www.linkedin.com/in/samsonthedatascientist/">LinkedIn</a>
+    </div>
+    """, unsafe_allow_html=True)
 
     with st.expander(label = '**Upload files**', expanded = False):
         st.session_state.files = st.file_uploader("Upload files", type = ["csv"], accept_multiple_files = True, label_visibility = 'collapsed')
