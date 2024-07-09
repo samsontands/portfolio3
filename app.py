@@ -160,11 +160,11 @@ def home(date):
         st_lottie(load_lottiefile("lottie_files/Animation - 1694990540946.json"), height = 150)
 
 if page == 0:
-    st.title("**📋 Pandas DataFrame Viewer**", anchor = False)
+    st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made with AI❤️**")
     home(datetime.now().date())
 elif page != 7:
-    st.title("**📋 Pandas DataFrame Viewer**", anchor = False)
+    st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made with AI❤️**")
     log = ''
     with st.expander(label = '**Filters**'):
