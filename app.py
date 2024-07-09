@@ -28,7 +28,7 @@ st.set_page_config(
 
 @st.cache_resource
 def load_personal_info():
-    with open('personal_info.txt', 'r') as f:
+    with open('config/personal_info.txt', 'r') as f:
         return f.read()
 
 @st.cache_resource(show_spinner = 0, experimental_allow_widgets=True)
