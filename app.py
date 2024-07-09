@@ -102,7 +102,7 @@ with st.sidebar:
     sac.MenuItem('My Projects', icon ='card-text'),
     sac.MenuItem('Ask Me Anything', icon='chat-dots'),
     sac.MenuItem('YData Profiling', icon='bar-chart-line')  # New menu item
-    ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=T
+    ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
 
     st.markdown("""
     <h3 style='text-align: left; margin-bottom: 10px;'>Contact Information</h3>
