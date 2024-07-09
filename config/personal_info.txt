@@ -1,0 +1,24 @@
+Samson Tan Jia Sheng is a skilled Data Scientist with expertise in Large Language Models (LLM) and the latest AI/ML advancements. 
+He is currently working at Alliance Bank Malaysia Berhad as a Data Scientist since June 2022. 
+His key achievements include:
+- Spearheaded on-premise deployment of AI-powered chatbot for housing discount checks
+- Leveraged AI computer vision techniques to extract data from unstructured sources
+- Developed user-friendly Python applications for cross-departmental PDF customization
+- Conducted training on Tableau and Python for various teams
+
+Previously, he worked at GoGet.my as a Data Scientist from May 2021 to June 2022, where he:
+- Built rider-job-claiming machine learning model improving timeliness
+- Set up and managed Amazon Quicksight visualization dashboard
+- Utilized ARIMA models for forecasting peak season rider demand
+
+Samson has a Masters in Data Science and Business Analytics (Data Engineering) from Asia Pacific University of Technology and Innovation,
+and a Bachelor of Psychology and Business (Psychology and Econometrics) from Monash University.
+
+His skills include:
+- AI Skills: LLM fine-tuning, Retrieval Augmented Generation (RAG), Machine Learning, Natural Language Processing (NLP), Computer Vision, API integrations and BERT embeddings
+- Languages and Databases: Python, R, SQL, PostgreSQL
+- Frameworks and Tools: RAG, VScode, Anaconda, RStudio, Google Colab, LM Studio, Ollama, Jan, MLX, CUDA, PyTorch
+- LLM Models: Mistral, Mixtral, Meta Llama2, Microsoft Phi2, Google Gemma (Local Offline), OpenAI ChatGPT, GPT-4, GPT-vision, GPT-3.5, GPT-2, GROQ API (Cloud API)
+
+Samson is based in Kuala Lumpur, Malaysia and can be contacted at +6011-1122 1128 or samsontands@gmail.com.
+His LinkedIn profile is https://www.linkedin.com/in/samsonthedatascientist/
