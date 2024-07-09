@@ -113,14 +113,19 @@ def home(date):
 
     col = st.columns([2, 1])
     with col[0].container():
-        st.markdown('''##### :film_projector: About the Project\n**`v2.0 Beta` ~v1.5 Beta~  ~v1.0 Beta~**\n* **This website can be used for Data Analysis, Data Filtering, Data Modifying and Data Visualization purposes.**\n* **This Project is solely inspired by my experience with the [`PandasGUI`]((https://github.com/adamerose/PandasGUI)) Library.**\n* **Re-created most of the functions of PandasGUI library.**\n* **Libraries Used: [`Streamlit`](https://streamlit.io/), [`Streamlit_extras`](https://extras.streamlit.app/), [`Pandas`](https://pandas.pydata.org/), [`Numpy`](https://numpy.org/), [`Plotly`](https://plotly.com/), [`Wordcloud`](https://amueller.github.io/word_cloud/), [`PygWalker`](https://github.com/Kanaries/pygwalker), [`Sketch`](https://github.com/approximatelabs/sketch), [`Streamlit Lottie`](https://github.com/andfanilo/streamlit-lottie/tree/main), [`Streamlit-Antd-Components`](https://github.com/nicedouble/StreamlitAntdComponents). :red[(New)]**\n* **Implemented `PygWalker` for more efficient Data Analysis. :red[(New)]**\n* **Implemented `Sketch` Library for data analysis with the help of AI. :red[(New)]**\n* **Implemented `Lottie` Animations. :red[(New)]**\n* **`UI` Changes done. :red[(New)]**\n* **Stores data in browser's cache.**\n* **During the use of AI, your dataframe information will be feeded into language models for analysis. :red[(New)]**\n* **Open Source.**\n* **As this project is in beta stage, if you find any :red[errors] please send me a screenshot in the feedback form.**
+        st.markdown('''##### :film_projector: About the Project
+**This Pandas DataFrame Viewer is a powerful tool for data analysis and visualization.**
+* **Perform quick and efficient data analysis on your datasets**
+* **Visualize data using various chart types**
+* **Leverage AI for intelligent data insights**
+* **User-friendly interface for both beginners and advanced users**
+* **Incorporates libraries like Streamlit, Pandas, Plotly, and more for robust functionality**
 
-**If this sounds interesting to you, consider starring in my GitHub Repo.**
+**If you find this project useful, please consider starring the GitHub repository and sharing it with your network.**
 
-**Share the website with your friends.**
-
-**[`GitHub Repo Link >`](https://github.com/sumit10300203/Pandas-DataFrame-Viewer)**
+**[`GitHub Repo Link >`](https://github.com/samsontands)**
     ''')
+
 
     with col[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694988937837.json"))
