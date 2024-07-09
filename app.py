@@ -161,11 +161,11 @@ def home(date):
 
 if page == 0:
     st.title("**📋 Pandas DataFrame Viewer**", anchor = False)
-    st.caption("**Made for Coders with ❤️**")
+    st.caption("**Made with AI❤️**")
     home(datetime.now().date())
 elif page != 7:
     st.title("**📋 Pandas DataFrame Viewer**", anchor = False)
-    st.caption("**Made for Coders with ❤️**")
+    st.caption("**Made with AI❤️**")
     log = ''
     with st.expander(label = '**Filters**'):
         if st.session_state.select_df:
