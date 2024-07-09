@@ -762,7 +762,7 @@ elif page == 7:
             title="Pandas Dataframe Viewer",
             text="A website for quick data analysis and visualization of your dataset with AI",
             image="https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
-            url="https://github.com/sumit10300203/Pandas-DataFrame-Viewer", 
+            url="https://alliancegpt.streamlit.app", 
             on_click=lambda: None
         )
         
