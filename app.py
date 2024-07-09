@@ -756,7 +756,7 @@ elif page == 6:
 elif page == 7:
     st.title('My Projects', anchor=False)
 
-    # Custom CSS for better styling
+    # Custom CSS for better styling and clickable cards
     st.markdown("""
     <style>
     .project-card {
@@ -764,7 +764,8 @@ elif page == 7:
         border-radius: 10px;
         padding: 1rem;
         margin-bottom: 1rem;
-        transition: transform 0.3s ease-in-out;
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        cursor: pointer;
     }
     .project-card:hover {
         transform: translateY(-5px);
@@ -774,6 +775,7 @@ elif page == 7:
         font-size: 1.2rem;
         font-weight: bold;
         margin-bottom: 0.5rem;
+        color: #333;
     }
     .project-description {
         font-size: 0.9rem;
@@ -829,12 +831,13 @@ elif page == 7:
     for i, project in enumerate(projects):
         with col1 if i % 2 == 0 else col2:
             st.markdown(f"""
-            <div class="project-card">
-                <img src="{project['image']}" style="width:100%; border-radius:5px; margin-bottom:0.5rem;">
-                <div class="project-title">{project['title']}</div>
-                <div class="project-description">{project['description']}</div>
-                <a href="{project['url']}" target="_blank" class="project-link">View Project</a>
-            </div>
+            <a href="{project['url']}" target="_blank" style="text-decoration: none; color: inherit;">
+                <div class="project-card">
+                    <img src="{project['image']}" style="width:100%; border-radius:5px; margin-bottom:0.5rem;">
+                    <div class="project-title">{project['title']}</div>
+                    <div class="project-description">{project['description']}</div>
+                </div>
+            </a>
             """, unsafe_allow_html=True)
 
     # Add some spacing at the bottom
