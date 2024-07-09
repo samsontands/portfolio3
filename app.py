@@ -73,13 +73,30 @@ with st.sidebar:
     sac.MenuItem('Ask Me Anything', icon='chat-dots')
     ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
 
-    st.markdown("<h3 style='text-align: left;'>Contact Information</h3>", unsafe_allow_html=True)
     st.markdown("""
-    <div style='text-align: left;'>
-    📞 +6011-1122 1128<br>
-    ✉️ samsontands@gmail.com<br>
-    📍 Kuala Lumpur, Malaysia<br>
-    🔗 <a href="https://www.linkedin.com/in/samsonthedatascientist/">LinkedIn</a>
+    <h3 style='text-align: left; margin-bottom: 10px;'>Contact Information</h3>
+    <style>
+        .contact-info {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 5px 10px;
+            align-items: center;
+        }
+        .contact-info img {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+        }
+    </style>
+    <div class="contact-info">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLXBob25lIj48cGF0aCBkPSJNMjIgMTYuOTJ2M2EyIDIgMCAwIDEtMi4xOCAyIDE5Ljc5IDE5Ljc5IDAgMCAxLTguNjMtMy4wNyAxOS41IDE5LjUgMCAwIDEtNi0gNiAxOS43OSAxOS43OSAwIDAgMS0zLjA3LTguNjdBMiAyIDAgMCAxIDQuMTEgMmgzYTIgMiAwIDAgMSAyIDEuNzIgMTIuODQgMTIuODQgMCAwIDAgLjcgMi44MSAyIDIgMCAwIDEtLjQ1IDIuMTFMOC4wOSA5LjkxYTE2IDE2IDAgMCAwIDYgNmwxLjI3LTEuMjdhMiAyIDAgMCAxIDIuMTEtLjQ1IDEyLjg0IDEyLjg0IDAgMCAwIDIuODEuN0EyIDIgMCAwIDEgMjIgMTYuOTJ6Ii8+PC9zdmc+">
+        <span>+6011-1122 1128</span>
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1haWwiPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgeD0iMiIgeT0iNCIgcng9IjIiLz48cGF0aCBkPSJtMjIgNy0xMCA3TDIgNyIvPjwvc3ZnPg==">
+        <span>samsontands@gmail.com</span>
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1hcC1waW4iPjxwYXRoIGQ9Ik0yMCAxMGMwIDYtOCAxMi04IDEycy04LTYtOC0xMmE4IDggMCAwIDEgMTYgMFoiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSIzIi8+PC9zdmc+">
+        <span>Kuala Lumpur, Malaysia</span>
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWxpbmsiPjxwYXRoIGQ9Ik0xMCA4LjJsNC44LTQuOGEzLjk5OSAzLjk5OSAwIDAgMSA1LjY1NyA1LjY1N0wxNS44IDE0YTQgNCAwIDAgMS01LjY1NyAwIi8+PHBhdGggZD0ibTE0IDE1LjgtNC44IDQuOGEzLjk5OSAzLjk5OSAwIDEgMS01LjY1Ny01LjY1N0w4LjIgMTBhNCA0IDAgMCAxIDUuNjU3IDAiLz48L3N2Zz4=">
+        <a href="https://www.linkedin.com/in/samsonthedatascientist/">LinkedIn</a>
     </div>
     """, unsafe_allow_html=True)
 
