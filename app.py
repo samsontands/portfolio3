@@ -770,7 +770,7 @@ elif page == 7:
     with card_grid.container():
         card(
             title="Alliance Bank GPT",
-            text="A brief description of your project goes here.",
+            text="A webpage for AI that can answer simple questions and answer.",
             image="https://images.prismic.io/codiste-website/08ac7396-b806-4550-b167-8814f6eb0fe2_What+is+the+difference+between+GPT_+GPT3%2C+GPT+3.5%2C+GPT+turbo+and+GPT-4.png?auto=compress,format",
             url="https://github.com/samsontands/alliancegpt",
             on_click=lambda: None
