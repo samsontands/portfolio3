@@ -51,24 +51,23 @@ def show_eda_tool():
         df = st.session_state.filtered_df
         st.write(df)
         
-        with st.spinner('Generating profiling report...'):
-            profile = ProfileReport(df, title="Pandas Profiling Report", explorative=True)
+        if st.button("Generate Profiling Report"):
+            with st.spinner('Generating profiling report...'):
+                profile = ProfileReport(df, title="Pandas Profiling Report", explorative=True)
+                
+                # Save the report to a BytesIO object
+                report_file = io.BytesIO()
+                profile.to_file(report_file, silent=True)
+                
+            st.success('Report generated successfully!')
             
-            # Generate report to memory
-            report_html = profile.to_html()
-            
-        st.success('Report generated successfully!')
-        
-        # Provide a download button for the HTML report
-        st.download_button(
-            label="Download Profiling Report",
-            data=report_html,
-            file_name="profiling_report.html",
-            mime="text/html"
-        )
-        
-        # Display the report in the Streamlit app
-        st.components.v1.html(report_html, height=600, scrolling=True)
+            # Provide a download button for the HTML file
+            st.download_button(
+                label="Download Profiling Report",
+                data=report_file.getvalue(),
+                file_name="profiling_report.html",
+                mime="text/html"
+            )
     else:
         st.warning("Please select a dataframe from the sidebar first.")
 
