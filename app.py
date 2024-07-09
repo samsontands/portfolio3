@@ -18,6 +18,8 @@ import os
 import json
 from datetime import datetime
 import requests
+from ydata_profiling import ProfileReport
+import io
 
 os.environ['SKETCH_MAX_COLUMNS'] = '50'
 st.set_page_config(
@@ -42,6 +44,34 @@ def load_lottiefile(filepath: str):
     with open(filepath, "r") as f:
         return json.load(f)
 
+def show_eda_tool():
+    st.title('Data Profiling with YData Profiling')
+    
+    if st.session_state.select_df:
+        df = st.session_state.filtered_df
+        st.write(df)
+        
+        with st.spinner('Generating profiling report...'):
+            profile = ProfileReport(df, title="Pandas Profiling Report", explorative=True)
+            
+            # Generate report to memory
+            report_html = profile.to_html()
+            
+        st.success('Report generated successfully!')
+        
+        # Provide a download button for the HTML report
+        st.download_button(
+            label="Download Profiling Report",
+            data=report_html,
+            file_name="profiling_report.html",
+            mime="text/html"
+        )
+        
+        # Display the report in the Streamlit app
+        st.components.v1.html(report_html, height=600, scrolling=True)
+    else:
+        st.warning("Please select a dataframe from the sidebar first.")
+
 def get_groq_response(prompt, system_prompt, personal_info):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -59,7 +89,7 @@ def get_groq_response(prompt, system_prompt, personal_info):
     response = requests.post(url, headers=headers, data=json.dumps(data))
     return response.json()['choices'][0]['message']['content']
 
-with st.sidebar:
+pythonCopywith st.sidebar:
     sidebar_animation(datetime.now().date())
     page = sac.menu([
     sac.MenuItem('Home', icon='house'),
@@ -70,8 +100,9 @@ with st.sidebar:
     sac.MenuItem('PygWalker', icon='plugin'),
     sac.MenuItem('Ask AI', icon='robot'),
     sac.MenuItem('My Projects', icon ='card-text'),
-    sac.MenuItem('Ask Me Anything', icon='chat-dots')
-    ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
+    sac.MenuItem('Ask Me Anything', icon='chat-dots'),
+    sac.MenuItem('YData Profiling', icon='bar-chart-line')  # New menu item
+    ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=T
 
     st.markdown("""
     <h3 style='text-align: left; margin-bottom: 10px;'>Contact Information</h3>
@@ -765,3 +796,6 @@ elif page == 8:  # Assuming the new menu item is at index 8
             response = get_groq_response(user_question, system_prompt, personal_info)
         st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
+elif page == 9:  # Assuming YData Profiling is the 10th item (index 9) in your menu
+    show_eda_tool()
+
