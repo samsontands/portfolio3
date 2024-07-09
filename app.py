@@ -766,15 +766,17 @@ elif page == 7:
             on_click=lambda: None
         )
         
-    # Add your project details here
     with card_grid.container():
         card(
             title="Alliance Bank GPT",
-            text="A webpage for AI that can answer simple questions and answer.",
+            text="A webpage for AI that can answer simple questions and provide information.",
             image="https://images.prismic.io/codiste-website/08ac7396-b806-4550-b167-8814f6eb0fe2_What+is+the+difference+between+GPT_+GPT3%2C+GPT+3.5%2C+GPT+turbo+and+GPT-4.png?auto=compress,format",
             url="https://github.com/samsontands/alliancegpt",
             on_click=lambda: None
         )
+
+    # Add your additional projects here
+
 elif page == 8:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
