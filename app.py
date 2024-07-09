@@ -26,6 +26,11 @@ st.set_page_config(
     layout="wide"
 )
 
+@st.cache_resource
+def load_personal_info():
+    with open('personal_info.txt', 'r') as f:
+        return f.read()
+
 @st.cache_resource(show_spinner = 0, experimental_allow_widgets=True)
 def sidebar_animation(date):
     st_lottie(load_lottiefile("lottie_files/Animation - 1694990107205.json"))
@@ -65,8 +70,14 @@ with st.sidebar:
     sac.MenuItem('PygWalker', icon='plugin'),
     sac.MenuItem('Ask AI', icon='robot'),
     sac.MenuItem('My Projects', icon ='card-text'),
-    sac.MenuItem('Ask Me Anything', icon='chat-dots')  # New menu item
+    sac.MenuItem('Ask Me Anything', icon='chat-dots')
     ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
+
+    st.header("Contact Information")
+    st.write("📞 +6011-1122 1128")
+    st.write("✉️ samsontands@gmail.com")
+    st.write("📍 Kuala Lumpur, Malaysia")
+    st.write("🔗 [LinkedIn](https://www.linkedin.com/in/samsonthedatascientist/)")
 
     with st.expander(label = '**Upload files**', expanded = False):
         st.session_state.files = st.file_uploader("Upload files", type = ["csv"], accept_multiple_files = True, label_visibility = 'collapsed')
@@ -87,9 +98,13 @@ def home(date):
     st.divider()
     col = st.columns([5, 1])
     with col[0].container():
-        st.markdown('''##### Hi, I am Sumit 👋
+        st.markdown('''##### Hi, I am Samson Tan Jia Sheng 👋
                     
-#### A Data Analyst Aspirant From India\n**I am passionate about Data Analysis, Data Visualization, Machine Learning, Frontend and Backend Developing, Data Structures and Algorithms.**''')
+#### A Data Scientist From Malaysia\n**I am passionate about Data Analysis, Data Visualization, Machine Learning, and AI advancements.**''')
+
+        personal_info = load_personal_info()
+        st.markdown("### About Me")
+        st.write(personal_info.split('\n\n')[0])  # Display the first paragraph of your personal info
 
     with col[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694988603751.json"))
