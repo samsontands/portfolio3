@@ -755,42 +755,87 @@ elif page == 6:
         st.markdown(f'{log}')
 elif page == 7:
     st.title('My Projects', anchor=False)
-    card_grid = grid(3, vertical_align="center")
-    
-    with card_grid.container():
-        card(
-            title="Pandas Dataframe Viewer",
-            text="A website for quick data analysis and visualization of your dataset with AI",
-            image="https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
-            url="https://samsontantest.streamlit.app/#hi-i-am-samson-tan-jia-sheng", 
-            on_click=lambda: None
-        )
-        
-    with card_grid.container():
-        card(
-            title="Alliance Bank GPT",
-            text="A webpage for AI that can answer simple questions and provide information.",
-            image="https://images.prismic.io/codiste-website/08ac7396-b806-4550-b167-8814f6eb0fe2_What+is+the+difference+between+GPT_+GPT3%2C+GPT+3.5%2C+GPT+turbo+and+GPT-4.png?auto=compress,format",
-            url="https://alliancegpt.streamlit.app/",
-            on_click=lambda: None
-        )
 
-    with card_grid.container():
-        card(
-            title="File Transfer App",
-            text="A webpage for termporary file transfer.",
-            image="https://img.freepik.com/premium-photo/cloud-storage-icon-neon-element-black-background-3d-rendering-illustration_567294-1378.jpg?w=740",
-            url="https://filecpdi.streamlit.app/",
-            on_click=lambda: None
-        )
-    with card_grid.container():
-        card(
-            title="Website Scraper POC",
-            text="A website to showcase web scraper POC",
-            image="https://miro.medium.com/v2/resize:fit:720/format:webp/1*nKwYuOo-zhF8eHocsR9WvA.png",
-            url="https://scraperpoc.streamlit.app/", 
-            on_click=lambda: None
-        )
+    # Custom CSS for better styling
+    st.markdown("""
+    <style>
+    .project-card {
+        background-color: #f0f2f6;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: transform 0.3s ease-in-out;
+    }
+    .project-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .project-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    .project-description {
+        font-size: 0.9rem;
+        color: #555;
+        margin-bottom: 0.5rem;
+    }
+    .project-link {
+        font-size: 0.9rem;
+        color: #4CAF50;
+        text-decoration: none;
+    }
+    .project-link:hover {
+        text-decoration: underline;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Project data
+    projects = [
+        {
+            "title": "Pandas Dataframe Viewer",
+            "description": "A website for quick data analysis and visualization of your dataset with AI",
+            "image": "https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
+            "url": "https://samsontantest.streamlit.app/#hi-i-am-samson-tan-jia-sheng"
+        },
+        {
+            "title": "Alliance Bank GPT",
+            "description": "A webpage for AI that can answer simple questions and provide information.",
+            "image": "https://images.prismic.io/codiste-website/08ac7396-b806-4550-b167-8814f6eb0fe2_What+is+the+difference+between+GPT_+GPT3%2C+GPT+3.5%2C+GPT+turbo+and+GPT-4.png?auto=compress,format",
+            "url": "https://alliancegpt.streamlit.app/"
+        },
+        {
+            "title": "File Transfer App",
+            "description": "A webpage for temporary file transfer.",
+            "image": "https://img.freepik.com/premium-photo/cloud-storage-icon-neon-element-black-background-3d-rendering-illustration_567294-1378.jpg?w=740",
+            "url": "https://filecpdi.streamlit.app/"
+        },
+        {
+            "title": "Website Scraper POC",
+            "description": "A website to showcase web scraper POC",
+            "image": "https://miro.medium.com/v2/resize:fit:720/format:webp/1*nKwYuOo-zhF8eHocsR9WvA.png",
+            "url": "https://scraperpoc.streamlit.app/"
+        }
+    ]
+
+    # Create a 2-column layout
+    col1, col2 = st.columns(2)
+
+    # Distribute projects across columns
+    for i, project in enumerate(projects):
+        with col1 if i % 2 == 0 else col2:
+            st.markdown(f"""
+            <div class="project-card">
+                <img src="{project['image']}" style="width:100%; border-radius:5px; margin-bottom:0.5rem;">
+                <div class="project-title">{project['title']}</div>
+                <div class="project-description">{project['description']}</div>
+                <a href="{project['url']}" target="_blank" class="project-link">View Project</a>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # Add some spacing at the bottom
+    st.markdown("<br>", unsafe_allow_html=True)
 
 elif page == 8:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
