@@ -89,6 +89,27 @@ def get_groq_response(prompt, system_prompt, personal_info):
 
 with st.sidebar:
     sidebar_animation(datetime.now().date())
+
+    # File upload section
+    if 'file_uploaded' not in st.session_state:
+        st.session_state.file_uploaded = False
+
+    with st.expander("Upload files", expanded=not st.session_state.file_uploaded):
+        st.session_state.files = st.file_uploader("Upload files", type=["csv"], accept_multiple_files=True, label_visibility='collapsed')
+        if st.session_state.files:
+            st.session_state.file_name = {}
+            for i in range(0, len(st.session_state.files)):
+                st.session_state.file_name[st.session_state.files[i].name] = i
+                if 'csv' in st.session_state.files[i].name or 'CSV' in st.session_state.files[i].name:
+                    st.session_state.files[i] = pd.read_csv(st.session_state.files[i])
+                    st.session_state.files[i]['Row_Number_'] = np.arange(0, len(st.session_state.files[i]))
+            st.session_state.select_df = selectbox("**Select Dataframe**", st.session_state.file_name.keys(), no_selection_label=None)
+            st.session_state.file_uploaded = True
+        else:
+            st.session_state.select_df = None
+            st.session_state.filtered_df = pd.DataFrame()
+            st.session_state.file_uploaded = False
+
     page = sac.menu([
     sac.MenuItem('Home', icon='house'),
     sac.MenuItem('DataFrame', icon='speedometer2'),
@@ -128,26 +149,6 @@ with st.sidebar:
         <a href="https://www.linkedin.com/in/samsonthedatascientist/">LinkedIn</a>
     </div>
     """, unsafe_allow_html=True)
-
-    # File upload section
-    if 'file_uploaded' not in st.session_state:
-        st.session_state.file_uploaded = False
-
-    with st.expander("Upload files", expanded=not st.session_state.file_uploaded):
-        st.session_state.files = st.file_uploader("Upload files", type=["csv"], accept_multiple_files=True, label_visibility='collapsed')
-        if st.session_state.files:
-            st.session_state.file_name = {}
-            for i in range(0, len(st.session_state.files)):
-                st.session_state.file_name[st.session_state.files[i].name] = i
-                if 'csv' in st.session_state.files[i].name or 'CSV' in st.session_state.files[i].name:
-                    st.session_state.files[i] = pd.read_csv(st.session_state.files[i])
-                    st.session_state.files[i]['Row_Number_'] = np.arange(0, len(st.session_state.files[i]))
-            st.session_state.select_df = selectbox("**Select Dataframe**", st.session_state.file_name.keys(), no_selection_label=None)
-            st.session_state.file_uploaded = True
-        else:
-            st.session_state.select_df = None
-            st.session_state.filtered_df = pd.DataFrame()
-            st.session_state.file_uploaded = False
 
 @st.cache_resource(show_spinner = 0, experimental_allow_widgets=True)
 def home(date):
