@@ -18,6 +18,8 @@ import os
 import json
 from datetime import datetime
 import requests
+from ydata_profiling import ProfileReport
+
 
 os.environ['SKETCH_MAX_COLUMNS'] = '50'
 st.set_page_config(
@@ -41,7 +43,33 @@ def convert_df(df, index = False):
 def load_lottiefile(filepath: str):
     with open(filepath, "r") as f:
         return json.load(f)
-
+def show_eda_tool():
+    st.title('Data Profiling with YData Profiling')
+    
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+    if uploaded_file is not None:
+        with st.spinner('Reading CSV file...'):
+            df = pd.read_csv(uploaded_file)
+            st.write(df)
+            
+        with st.spinner('Generating profiling report...'):
+            profile = ProfileReport(df, title="Pandas Profiling Report", explorative=True)
+            
+            # Save the report to an HTML file
+            report_path = "profiling_report.html"
+            profile.to_file(report_path)
+            
+        st.success('Report generated successfully!')
+        # Provide a link to open the report in a new tab
+        st.markdown(f'<a href="file://{os.path.abspath(report_path)}" target="_blank">Click here to view the full report</a>', unsafe_allow_html=True)
+        # Provide a download button for the HTML file
+        with open(report_path, "rb") as file:
+            btn = st.download_button(
+                label="Download Profiling Report",
+                data=file,
+                file_name="profiling_report.html",
+                mime="text/html"
+            )
 def get_groq_response(prompt, system_prompt, personal_info):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -59,7 +87,7 @@ def get_groq_response(prompt, system_prompt, personal_info):
     response = requests.post(url, headers=headers, data=json.dumps(data))
     return response.json()['choices'][0]['message']['content']
 
-with st.sidebar:
+pythonCopywith st.sidebar:
     sidebar_animation(datetime.now().date())
     page = sac.menu([
     sac.MenuItem('Home', icon='house'),
@@ -70,7 +98,8 @@ with st.sidebar:
     sac.MenuItem('PygWalker', icon='plugin'),
     sac.MenuItem('Ask AI', icon='robot'),
     sac.MenuItem('My Projects', icon ='card-text'),
-    sac.MenuItem('Ask Me Anything', icon='chat-dots')
+    sac.MenuItem('Ask Me Anything', icon='chat-dots'),
+    sac.MenuItem('YData Profiling', icon='bar-chart-line')  # New menu item
     ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
 
     st.markdown("""
@@ -765,3 +794,5 @@ elif page == 8:  # Assuming the new menu item is at index 8
             response = get_groq_response(user_question, system_prompt, personal_info)
         st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
+elif page == 9:  # New condition for YData Profiling
+    show_eda_tool()
