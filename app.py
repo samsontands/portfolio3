@@ -783,7 +783,7 @@ elif page == 7:
             url="https://filecpdi.streamlit.app/",
             on_click=lambda: None
         )
-        with card_grid.container():
+    with card_grid.container():
         card(
             title="Website Scraper POC",
             text="A website to showcase web scraper POC",
