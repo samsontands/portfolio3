@@ -757,29 +757,24 @@ elif page == 7:
     st.title('My Projects', anchor=False)
     card_grid = grid(3, vertical_align="center")
     
-    # Styling for card images
-    image_style = {"width": "100%", "height": "auto"}
-
     with card_grid.container():
         card(
             title="Pandas Dataframe Viewer",
             text="A website for quick data analysis and visualization of your dataset with AI",
             image="https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
             url="https://github.com/sumit10300203/Pandas-DataFrame-Viewer", 
-            on_click=lambda: None,
-            style=image_style
+            on_click=lambda: None
         )
         
+    # Add your project details here
     with card_grid.container():
         card(
             title="Alliance Bank GPT",
-            text="A webpage for AI that can answer simple questions and provide information.",
-            image="https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
-            url="https://alliancegpt.streamlit.app/", 
-            on_click=lambda: None,
-            style=image_style
+            text="A webpage for AI that can answer simple questions and answer.",
+            image="https://images.prismic.io/codiste-website/08ac7396-b806-4550-b167-8814f6eb0fe2_What+is+the+difference+between+GPT_+GPT3%2C+GPT+3.5%2C+GPT+turbo+and+GPT-4.png?auto=compress,format",
+            url="https://github.com/samsontands/alliancegpt",
+            on_click=lambda: None
         )
-
 elif page == 8:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
@@ -799,4 +794,3 @@ elif page == 8:  # Assuming the new menu item is at index 8
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
 elif page == 9:  # Assuming YData Profiling is the 10th item (index 9) in your menu
     show_eda_tool()
-
