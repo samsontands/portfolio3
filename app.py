@@ -17,6 +17,7 @@ import sketch
 import os
 import json
 from datetime import datetime
+import requests
 
 os.environ['SKETCH_MAX_COLUMNS'] = '50'
 st.set_page_config(
@@ -36,6 +37,23 @@ def load_lottiefile(filepath: str):
     with open(filepath, "r") as f:
         return json.load(f)
 
+def get_groq_response(prompt, system_prompt, personal_info):
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "mixtral-8x7b-32768", 
+        "messages": [
+            {"role": "system", "content": f"{system_prompt} {personal_info}"},
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 100
+    }
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    return response.json()['choices'][0]['message']['content']
+
 with st.sidebar:
     sidebar_animation(datetime.now().date())
     page = sac.menu([
@@ -46,7 +64,8 @@ with st.sidebar:
     sac.MenuItem('Reshaper', icon='square-half'),
     sac.MenuItem('PygWalker', icon='plugin'),
     sac.MenuItem('Ask AI', icon='robot'),
-    sac.MenuItem('My Projects', icon ='card-text')
+    sac.MenuItem('My Projects', icon ='card-text'),
+    sac.MenuItem('Ask Me Anything', icon='chat-dots')  # New menu item
     ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
 
     with st.expander(label = '**Upload files**', expanded = False):
@@ -689,3 +708,20 @@ elif page == 7:
         image="https://user-images.githubusercontent.com/66067910/259968786-4d4bf15a-8eef-4da3-8975-af3da9d22b1c.JPG",
         url="https://github.com/sumit10300203/Thermal-Power-Plant-Consumption-Analysis", 
         on_click = lambda: None)
+elif page == 8:  # Assuming the new menu item is at index 8
+    st.title("Ask Me Anything")
+    st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
+    
+    # Load necessary configuration files
+    with open('config/personal_info.txt', 'r') as f:
+        personal_info = f.read()
+
+    with open('config/system_prompt.txt', 'r') as f:
+        system_prompt = f.read()
+    
+    user_question = st.text_input("What would you like to know?")
+    if user_question:
+        with st.spinner('Getting a quick answer...'):
+            response = get_groq_response(user_question, system_prompt, personal_info)
+        st.write(response)
+    st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
