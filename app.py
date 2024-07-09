@@ -775,7 +775,14 @@ elif page == 7:
             on_click=lambda: None
         )
 
-    # Add your additional projects here
+    with card_grid.container():
+        card(
+            title="File Transfer App",
+            text="A webpage for termporary file transfer.",
+            image="https://img.freepik.com/premium-photo/cloud-storage-icon-neon-element-black-background-3d-rendering-illustration_567294-1378.jpg?w=740",
+            url="https://filecpdi.streamlit.app/",
+            on_click=lambda: None
+        )
 
 elif page == 8:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
