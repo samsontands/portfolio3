@@ -794,12 +794,6 @@ elif page == 7:
     # Project data
     projects = [
         {
-            "title": "Pandas Dataframe Viewer",
-            "description": "A website for quick data analysis and visualization of your dataset with AI",
-            "image": "https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
-            "url": "https://samsontantest.streamlit.app/#hi-i-am-samson-tan-jia-sheng"
-        },
-        {
             "title": "Alliance Bank GPT",
             "description": "A webpage for AI that can answer simple questions and provide information.",
             "image": "https://images.prismic.io/codiste-website/08ac7396-b806-4550-b167-8814f6eb0fe2_What+is+the+difference+between+GPT_+GPT3%2C+GPT+3.5%2C+GPT+turbo+and+GPT-4.png?auto=compress,format",
@@ -812,12 +806,21 @@ elif page == 7:
             "url": "https://filecpdi.streamlit.app/"
         },
         {
+            "title": "Pandas Dataframe Viewer",
+            "description": "A website for quick data analysis and visualization of your dataset with AI",
+            "image": "https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
+            "url": "https://samsontantest.streamlit.app/#hi-i-am-samson-tan-jia-sheng"
+        },
+        {
             "title": "Website Scraper POC",
             "description": "A website to showcase web scraper POC",
             "image": "https://miro.medium.com/v2/resize:fit:720/format:webp/1*nKwYuOo-zhF8eHocsR9WvA.png",
             "url": "https://scraperpoc.streamlit.app/"
         }
     ]
+
+    # Sort projects alphabetically by title
+    projects.sort(key=lambda x: x['title'])
 
     # Create a 2-column layout
     col1, col2 = st.columns(2)
