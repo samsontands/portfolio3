@@ -182,11 +182,11 @@ def home(date):
 
 if page == 0:
     st.title("**📋 Samson Data Viewer**", anchor = False)
-    st.caption("**Made with AI❤️**")
+    st.caption("**Made by Samson with AI❤️**")
     home(datetime.now().date())
 elif page != 7:
     st.title("**📋 Samson Data Viewer**", anchor = False)
-    st.caption("**Made with AI❤️**")
+    st.caption("**Made by Samson with AI❤️**")
     log = ''
     with st.expander(label = '**Filters**'):
         if st.session_state.select_df:
