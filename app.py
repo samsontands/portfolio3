@@ -89,7 +89,7 @@ def get_groq_response(prompt, system_prompt, personal_info):
     response = requests.post(url, headers=headers, data=json.dumps(data))
     return response.json()['choices'][0]['message']['content']
 
-pythonCopywith st.sidebar:
+with st.sidebar:
     sidebar_animation(datetime.now().date())
     page = sac.menu([
     sac.MenuItem('Home', icon='house'),
