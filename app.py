@@ -44,11 +44,6 @@ def load_lottiefile(filepath: str):
     with open(filepath, "r") as f:
         return json.load(f)
 
-import streamlit as st
-import pandas as pd
-from ydata_profiling import ProfileReport
-import io
-
 def show_eda_tool():
     st.title('Data Profiling with YData Profiling')
     
@@ -759,29 +754,27 @@ elif page == 6:
         st.subheader("**Console Log**", anchor = False)
         st.markdown(f'{log}')
 elif page == 7:
-    st.title('My Projects', anchor = False)
+    st.title('My Projects', anchor=False)
     card_grid = grid(3, vertical_align="center")
+    
     with card_grid.container():
         card(
-        title="Pandas Dataframe Viewer",
-        text="A website for quick data analysis and visualization of your dataset with AI",
-        image="https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
-        url="https://github.com/sumit10300203/Pandas-DataFrame-Viewer", 
-        on_click = lambda: None)
+            title="Pandas Dataframe Viewer",
+            text="A website for quick data analysis and visualization of your dataset with AI",
+            image="https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
+            url="https://github.com/sumit10300203/Pandas-DataFrame-Viewer", 
+            on_click=lambda: None
+        )
+        
+    # Add your project details here
     with card_grid.container():
         card(
-        title="GeeksForGeeks Profile Analytics",
-        text="A website to view GFG user's profile analytics for making their coding journey in a more organized way",
-        image="https://media.geeksforgeeks.org/wp-content/uploads/20220413171711/gfgblack.png",
-        url="https://github.com/sumit10300203/GeeksForGeeks-Profile-Analytics", 
-        on_click = lambda: None)
-    with card_grid.container():
-        card(
-        title="Thermal Power Plant Consumption Analysis in India",
-        text="A PowerBI app to show analysis of power consumption in India (2017-2020) using Prophet Model",
-        image="https://user-images.githubusercontent.com/66067910/259968786-4d4bf15a-8eef-4da3-8975-af3da9d22b1c.JPG",
-        url="https://github.com/sumit10300203/Thermal-Power-Plant-Consumption-Analysis", 
-        on_click = lambda: None)
+            title="Alliance Bank GPT",
+            text="A brief description of your project goes here.",
+            image="URL_to_your_project_image",
+            url="https://github.com/samsontands/alliancegpt",
+            on_click=lambda: None
+        )
 elif page == 8:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
