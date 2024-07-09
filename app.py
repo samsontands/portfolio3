@@ -783,6 +783,14 @@ elif page == 7:
             url="https://filecpdi.streamlit.app/",
             on_click=lambda: None
         )
+        with card_grid.container():
+        card(
+            title="Website Scraper POC",
+            text="A website to showcase web scraper POC",
+            image="https://miro.medium.com/v2/resize:fit:720/format:webp/1*nKwYuOo-zhF8eHocsR9WvA.png",
+            url="https://scraperpoc.streamlit.app/", 
+            on_click=lambda: None
+        )
 
 elif page == 8:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
