@@ -258,3 +258,5 @@ wsproto==1.2.0
 yarg==0.1.9
 yarl==1.9.2
 zipp==3.16.2
+ydata-profiling
+io
