@@ -19,6 +19,7 @@ import json
 from datetime import datetime
 import requests
 from ydata_profiling import ProfileReport
+import io
 
 
 os.environ['SKETCH_MAX_COLUMNS'] = '50'
@@ -43,33 +44,35 @@ def convert_df(df, index = False):
 def load_lottiefile(filepath: str):
     with open(filepath, "r") as f:
         return json.load(f)
+pythonCopyimport io
+
 def show_eda_tool():
     st.title('Data Profiling with YData Profiling')
     
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
-    if uploaded_file is not None:
-        with st.spinner('Reading CSV file...'):
-            df = pd.read_csv(uploaded_file)
-            st.write(df)
-            
+    if st.session_state.select_df:
+        df = st.session_state.filtered_df
+        st.write(df)
+        
         with st.spinner('Generating profiling report...'):
             profile = ProfileReport(df, title="Pandas Profiling Report", explorative=True)
             
-            # Save the report to an HTML file
-            report_path = "profiling_report.html"
-            profile.to_file(report_path)
+            # Generate report to memory
+            report_html = profile.to_html()
             
         st.success('Report generated successfully!')
-        # Provide a link to open the report in a new tab
-        st.markdown(f'<a href="file://{os.path.abspath(report_path)}" target="_blank">Click here to view the full report</a>', unsafe_allow_html=True)
-        # Provide a download button for the HTML file
-        with open(report_path, "rb") as file:
-            btn = st.download_button(
-                label="Download Profiling Report",
-                data=file,
-                file_name="profiling_report.html",
-                mime="text/html"
-            )
+        
+        # Provide a download button for the HTML report
+        st.download_button(
+            label="Download Profiling Report",
+            data=report_html,
+            file_name="profiling_report.html",
+            mime="text/html"
+        )
+        
+        # Display the report in the Streamlit app
+        st.components.v1.html(report_html, height=600, scrolling=True)
+    else:
+        st.warning("Please select a dataframe from the sidebar first.")
 def get_groq_response(prompt, system_prompt, personal_info):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -739,7 +742,7 @@ elif page == 5:
 elif page == 6:
     if st.session_state.select_df:
         preference_ai = st.radio("**Select your Preference**", options = ["**Ask about the selected Dataframe**", "**Ask how to perform actions on selected Dataframe**"], horizontal = True)
-        prompt = st.text_area("Enter Promt", placeholder = "Enter your promt", label_visibility="collapsed")
+        prompt = st.text_area("Enter Prompt", placeholder = "Enter your prompt", label_visibility="collapsed")
         proceed_ai = st.button("Continue", key = 'ask_ai')
         with st.expander("**AI says**", expanded = True):
             st.divider()
