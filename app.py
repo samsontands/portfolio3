@@ -174,8 +174,7 @@ def home(date):
 
         * **Connect with me on [`LinkedIn>`](https://www.linkedin.com/in/samsonthedatascientist/)**
         * **My Github Profile [`Github>`](https://github.com/samsontands)**
-        * **Mail me on `sumit10300203@gmail.com`**
-        * **Please leave us your Feedback on [`Feedback G-Form>`](https://forms.gle/vzVN6h7FtwCn45hw6)**
+        * **Mail me on `samsontands@gmail.com`**
         ''')
     with col2[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694990540946.json"), height = 150)
