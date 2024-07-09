@@ -21,7 +21,7 @@ import requests
 
 os.environ['SKETCH_MAX_COLUMNS'] = '50'
 st.set_page_config(
-    page_title="Dataframe Viewer",
+    page_title="Samson Data Viewer",
     page_icon="📊",
     layout="wide"
 )
