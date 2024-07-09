@@ -44,6 +44,11 @@ def load_lottiefile(filepath: str):
     with open(filepath, "r") as f:
         return json.load(f)
 
+import streamlit as st
+import pandas as pd
+from ydata_profiling import ProfileReport
+import io
+
 def show_eda_tool():
     st.title('Data Profiling with YData Profiling')
     
@@ -55,16 +60,15 @@ def show_eda_tool():
             with st.spinner('Generating profiling report...'):
                 profile = ProfileReport(df, title="Pandas Profiling Report", explorative=True)
                 
-                # Save the report to a BytesIO object
-                report_file = io.BytesIO()
-                profile.to_file(report_file, silent=True)
+                # Generate the report as a string
+                report_html = profile.to_html()
                 
             st.success('Report generated successfully!')
             
             # Provide a download button for the HTML file
             st.download_button(
                 label="Download Profiling Report",
-                data=report_file.getvalue(),
+                data=report_html,
                 file_name="profiling_report.html",
                 mime="text/html"
             )
