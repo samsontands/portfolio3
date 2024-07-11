@@ -28,6 +28,18 @@ st.set_page_config(
     layout="wide"
 )
 
+page_functions = {
+    'Home': 0,
+    'DataFrame': 1,
+    'Statistics': 2,
+    'Grapher': 3,
+    'PygWalker': 4,
+    'Ask AI': 5,
+    'My Projects': 6,
+    'Ask Me Anything': 7,
+    'YData Profiling': 8
+}
+
 @st.cache_resource
 def load_personal_info():
     with open('config/personal_info.txt', 'r') as f:
@@ -214,7 +226,7 @@ def home(date):
     with col2[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694990540946.json"), height = 150)
 
-if page == 0:
+if page == page_functions['Home']:
     st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made by Samson with AI❤️**")
     home(datetime.now().date())
@@ -240,7 +252,7 @@ elif page != 7:
                 log = traceback.format_exc()
             curr_filtered_df = st.session_state.filtered_df[columns_to_show_df[columns_to_show_df['Show?'] == True]['Column Name'].to_list()]
 
-if page == 1:
+elif page == page_functions['DataFrame']:
     st.write("")
     if st.session_state.select_df:
         st.data_editor(curr_filtered_df, use_container_width = True, num_rows="dynamic", hide_index = False)
@@ -250,7 +262,7 @@ if page == 1:
         st.subheader("**Console Log**", anchor = False)
         st.markdown(f'{log}')
 
-elif page == 2:
+elif page == page_functions['Statistics']:
     st.write("")
     if st.session_state.select_df:
         stats = curr_filtered_df.describe().copy().T
@@ -259,7 +271,7 @@ elif page == 2:
         st.markdown(f"**DataFrame Shape: {curr_filtered_df.shape[0]} x {curr_filtered_df.shape[1]}**")
         st.download_button(label="**Download Statistics DataFrame as CSV**", data = convert_df(stats, index = True), file_name=f"stats_{st.session_state.select_df}", mime='text/csv')
 
-elif page == 3:
+elif page == page_functions['Grapher']:
     st.write("")
     grapher_tabs = sac.segmented(
     items=[
@@ -598,7 +610,7 @@ elif page == 3:
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
 
-elif page == 4:
+elif page == page_functions.get('Reshaper', -1):  # -1 or any value that's not used by other pages
     st.write("")
     reshaper_tabs = sac.segmented(
     items=[
@@ -729,7 +741,7 @@ elif page == 4:
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
 
-elif page == 5:
+elif page == page_functions['PygWalker']:
     if st.session_state.select_df:
         st.markdown("**Are you sure of proceeding to PygWalker interface?**")
         try:
@@ -742,7 +754,7 @@ elif page == 5:
         st.markdown(f'{log}')
 
 
-elif page == 6:
+elif page == page_functions['Ask AI']:
     if st.session_state.select_df:
         preference_ai = st.radio("**Select your Preference**", options = ["**Ask about the selected Dataframe**", "**Ask how to perform actions on selected Dataframe**"], horizontal = True)
         prompt = st.text_area("Enter Promt", placeholder = "Enter your promt", label_visibility="collapsed")
@@ -759,7 +771,7 @@ elif page == 6:
                 log = traceback.format_exc()
         st.subheader("**Console Log**", anchor = False)
         st.markdown(f'{log}')
-elif page == 7:
+elif page == page_functions['My Projects']:
     st.title('My Projects', anchor=False)
 
     # Custom CSS for better styling and clickable cards
@@ -849,7 +861,7 @@ elif page == 7:
     # Add some spacing at the bottom
     st.markdown("<br>", unsafe_allow_html=True)
 
-elif page == 8:  # Assuming the new menu item is at index 8
+elif page == page_functions['Ask Me Anything']:
     st.title("Ask Me Anything")
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
     
@@ -866,5 +878,5 @@ elif page == 8:  # Assuming the new menu item is at index 8
             response = get_groq_response(user_question, system_prompt, personal_info)
         st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
-elif page == 9:  # Assuming YData Profiling is the 10th item (index 9) in your menu
+elif page == page_functions['YData Profiling']:
     show_eda_tool()
