@@ -115,7 +115,7 @@ with st.sidebar:
     sac.MenuItem('DataFrame', icon='speedometer2'),
     sac.MenuItem('Statistics', icon='plus-slash-minus'),
     sac.MenuItem('Grapher', icon='graph-up'),
-    sac.MenuItem('Reshaper', icon='square-half'),
+    # sac.MenuItem('Reshaper', icon='square-half'),
     sac.MenuItem('PygWalker', icon='plugin'),
     sac.MenuItem('Ask AI', icon='robot'),
     sac.MenuItem('My Projects', icon ='card-text'),
@@ -218,7 +218,7 @@ if page == 0:
     st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made by Samson with AI❤️**")
     home(datetime.now().date())
-elif page != 7:
+elif page != 6:
     st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made by Samson with AI❤️**")
     log = ''
@@ -598,7 +598,7 @@ elif page == 3:
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
 
-elif page == 4:
+elif page == -1:
     st.write("")
     reshaper_tabs = sac.segmented(
     items=[
@@ -729,7 +729,7 @@ elif page == 4:
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
 
-elif page == 5:
+elif page == 4:
     if st.session_state.select_df:
         st.markdown("**Are you sure of proceeding to PygWalker interface?**")
         try:
@@ -742,7 +742,7 @@ elif page == 5:
         st.markdown(f'{log}')
 
 
-elif page == 6:
+elif page == 5:
     if st.session_state.select_df:
         preference_ai = st.radio("**Select your Preference**", options = ["**Ask about the selected Dataframe**", "**Ask how to perform actions on selected Dataframe**"], horizontal = True)
         prompt = st.text_area("Enter Promt", placeholder = "Enter your promt", label_visibility="collapsed")
@@ -759,7 +759,7 @@ elif page == 6:
                 log = traceback.format_exc()
         st.subheader("**Console Log**", anchor = False)
         st.markdown(f'{log}')
-elif page == 7:
+elif page == 6:
     st.title('My Projects', anchor=False)
 
     # Custom CSS for better styling and clickable cards
@@ -849,7 +849,7 @@ elif page == 7:
     # Add some spacing at the bottom
     st.markdown("<br>", unsafe_allow_html=True)
 
-elif page == 8:  # Assuming the new menu item is at index 8
+elif page == 7:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
     
@@ -866,5 +866,5 @@ elif page == 8:  # Assuming the new menu item is at index 8
             response = get_groq_response(user_question, system_prompt, personal_info)
         st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
-elif page == 9:  # Assuming YData Profiling is the 10th item (index 9) in your menu
+elif page == 8:  # Assuming YData Profiling is the 10th item (index 9) in your menu
     show_eda_tool()
