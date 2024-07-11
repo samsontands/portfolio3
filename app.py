@@ -115,7 +115,7 @@ with st.sidebar:
     sac.MenuItem('DataFrame', icon='speedometer2'),
     sac.MenuItem('Statistics', icon='plus-slash-minus'),
     sac.MenuItem('Grapher', icon='graph-up'),
-    sac.MenuItem('Reshaper', icon='square-half'),
+    #sac.MenuItem('Reshaper', icon='square-half'),
     sac.MenuItem('PygWalker', icon='plugin'),
     sac.MenuItem('Ask AI', icon='robot'),
     sac.MenuItem('My Projects', icon ='card-text'),
