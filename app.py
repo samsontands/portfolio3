@@ -814,10 +814,10 @@ elif page == 7:
             "url": "https://filecpdi.streamlit.app/"
         },
         {
-            "title": "Pandas Dataframe Viewer",
-            "description": "A website for quick data analysis and visualization of your dataset with AI",
-            "image": "https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
-            "url": "https://samsontantest.streamlit.app/#hi-i-am-samson-tan-jia-sheng"
+            "title": "Depcreciation Analysis Demo",
+            "description": "A website to showcase an analysis to calculate vehicle depreciation",
+            "image": "https://static.vecteezy.com/system/resources/previews/005/735/523/original/thin-line-car-icons-set-in-black-background-universal-car-icon-to-use-in-web-and-mobile-ui-car-basic-ui-elements-set-free-vector.jpg",
+            "url": "https://depreciationanalysis.streamlit.app/"
         },
         {
             "title": "Website Scraper POC",
