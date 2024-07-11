@@ -28,18 +28,6 @@ st.set_page_config(
     layout="wide"
 )
 
-page_functions = {
-    'Home': 0,
-    'DataFrame': 1,
-    'Statistics': 2,
-    'Grapher': 3,
-    'PygWalker': 4,
-    'Ask AI': 5,
-    'My Projects': 6,
-    'Ask Me Anything': 7,
-    'YData Profiling': 8
-}
-
 @st.cache_resource
 def load_personal_info():
     with open('config/personal_info.txt', 'r') as f:
@@ -226,7 +214,7 @@ def home(date):
     with col2[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694990540946.json"), height = 150)
 
-if page == page_functions['Home']:
+if page == 0:
     st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made by Samson with AI❤️**")
     home(datetime.now().date())
@@ -252,7 +240,7 @@ elif page != 7:
                 log = traceback.format_exc()
             curr_filtered_df = st.session_state.filtered_df[columns_to_show_df[columns_to_show_df['Show?'] == True]['Column Name'].to_list()]
 
-elif page == page_functions['DataFrame']:
+if page == 1:
     st.write("")
     if st.session_state.select_df:
         st.data_editor(curr_filtered_df, use_container_width = True, num_rows="dynamic", hide_index = False)
@@ -262,7 +250,7 @@ elif page == page_functions['DataFrame']:
         st.subheader("**Console Log**", anchor = False)
         st.markdown(f'{log}')
 
-elif page == page_functions['Statistics']:
+elif page == 2:
     st.write("")
     if st.session_state.select_df:
         stats = curr_filtered_df.describe().copy().T
@@ -271,7 +259,7 @@ elif page == page_functions['Statistics']:
         st.markdown(f"**DataFrame Shape: {curr_filtered_df.shape[0]} x {curr_filtered_df.shape[1]}**")
         st.download_button(label="**Download Statistics DataFrame as CSV**", data = convert_df(stats, index = True), file_name=f"stats_{st.session_state.select_df}", mime='text/csv')
 
-elif page == page_functions['Grapher']:
+elif page == 3:
     st.write("")
     grapher_tabs = sac.segmented(
     items=[
@@ -610,7 +598,7 @@ elif page == page_functions['Grapher']:
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
 
-elif page == page_functions.get('Reshaper', -1):  # -1 or any value that's not used by other pages
+elif page == 4:
     st.write("")
     reshaper_tabs = sac.segmented(
     items=[
@@ -741,7 +729,7 @@ elif page == page_functions.get('Reshaper', -1):  # -1 or any value that's not u
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
 
-elif page == page_functions['PygWalker']:
+elif page == 5:
     if st.session_state.select_df:
         st.markdown("**Are you sure of proceeding to PygWalker interface?**")
         try:
@@ -754,7 +742,7 @@ elif page == page_functions['PygWalker']:
         st.markdown(f'{log}')
 
 
-elif page == page_functions['Ask AI']:
+elif page == 6:
     if st.session_state.select_df:
         preference_ai = st.radio("**Select your Preference**", options = ["**Ask about the selected Dataframe**", "**Ask how to perform actions on selected Dataframe**"], horizontal = True)
         prompt = st.text_area("Enter Promt", placeholder = "Enter your promt", label_visibility="collapsed")
@@ -771,7 +759,7 @@ elif page == page_functions['Ask AI']:
                 log = traceback.format_exc()
         st.subheader("**Console Log**", anchor = False)
         st.markdown(f'{log}')
-elif page == page_functions['My Projects']:
+elif page == 7:
     st.title('My Projects', anchor=False)
 
     # Custom CSS for better styling and clickable cards
@@ -826,10 +814,10 @@ elif page == page_functions['My Projects']:
             "url": "https://filecpdi.streamlit.app/"
         },
         {
-            "title": "Depcreciation Analysis Demo",
-            "description": "A website to showcase an analysis to calculate vehicle depreciation",
-            "image": "https://static.vecteezy.com/system/resources/previews/005/735/523/original/thin-line-car-icons-set-in-black-background-universal-car-icon-to-use-in-web-and-mobile-ui-car-basic-ui-elements-set-free-vector.jpg",
-            "url": "https://depreciationanalysis.streamlit.app/"
+            "title": "Pandas Dataframe Viewer",
+            "description": "A website for quick data analysis and visualization of your dataset with AI",
+            "image": "https://user-images.githubusercontent.com/66067910/266804437-e9572603-7982-4b19-9732-18a079d48f5b.png",
+            "url": "https://samsontantest.streamlit.app/#hi-i-am-samson-tan-jia-sheng"
         },
         {
             "title": "Website Scraper POC",
@@ -861,7 +849,7 @@ elif page == page_functions['My Projects']:
     # Add some spacing at the bottom
     st.markdown("<br>", unsafe_allow_html=True)
 
-elif page == page_functions['Ask Me Anything']:
+elif page == 8:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
     
@@ -878,5 +866,5 @@ elif page == page_functions['Ask Me Anything']:
             response = get_groq_response(user_question, system_prompt, personal_info)
         st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
-elif page == page_functions['YData Profiling']:
+elif page == 9:  # Assuming YData Profiling is the 10th item (index 9) in your menu
     show_eda_tool()
