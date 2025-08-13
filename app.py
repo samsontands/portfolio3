@@ -17,11 +17,9 @@ import sketch
 import os
 import json
 from datetime import datetime
+import requests
 from ydata_profiling import ProfileReport
 import io
-
-# ✅ NEW: Groq SDK
-from groq import Groq
 
 os.environ['SKETCH_MAX_COLUMNS'] = '50'
 st.set_page_config(
@@ -56,8 +54,13 @@ def show_eda_tool():
         if st.button("Generate Profiling Report"):
             with st.spinner('Generating profiling report...'):
                 profile = ProfileReport(df, title="Pandas Profiling Report", explorative=True)
+                
+                # Generate the report as a string
                 report_html = profile.to_html()
+                
             st.success('Report generated successfully!')
+            
+            # Provide a download button for the HTML file
             st.download_button(
                 label="Download Profiling Report",
                 data=report_html,
@@ -67,41 +70,22 @@ def show_eda_tool():
     else:
         st.warning("Please select a dataframe from the sidebar first.")
 
-# ✅ NEW: Streaming helper for Groq OSS model
-def stream_groq_response(prompt, system_prompt, personal_info):
-    """
-    Stream tokens from Groq OSS model and live-update the Streamlit UI.
-    """
-    try:
-        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-        stream = client.chat.completions.create(
-            model="openai/gpt-oss-20b",
-            messages=[
-                {"role": "system", "content": f"{system_prompt} {personal_info}"},
-                {"role": "user", "content": prompt},
-            ],
-            max_completion_tokens=400,
-            temperature=0.7,
-            top_p=1.0,
-            reasoning_effort="medium",
-            stream=True,
-        )
-    except Exception as e:
-        st.error(f"Failed to init/call Groq: {e}")
-        return ""
-
-    placeholder = st.empty()
-    chunks = []
-    for chunk in stream:
-        try:
-            delta = chunk.choices[0].delta.content or ""
-        except Exception:
-            delta = ""
-        if delta:
-            chunks.append(delta)
-            # Write progressively (no flicker)
-            placeholder.write("".join(chunks))
-    return "".join(chunks)
+def get_groq_response(prompt, system_prompt, personal_info):
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "mixtral-8x7b-32768", 
+        "messages": [
+            {"role": "system", "content": f"{system_prompt} {personal_info}"},
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 100
+    }
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    return response.json()['choices'][0]['message']['content']
 
 with st.sidebar:
     sidebar_animation(datetime.now().date())
@@ -127,16 +111,16 @@ with st.sidebar:
             st.session_state.file_uploaded = False
 
     page = sac.menu([
-        sac.MenuItem('Home', icon='house'),
-        sac.MenuItem('DataFrame', icon='speedometer2'),
-        sac.MenuItem('Statistics', icon='plus-slash-minus'),
-        sac.MenuItem('Grapher', icon='graph-up'),
-        # sac.MenuItem('Reshaper', icon='square-half'),
-        sac.MenuItem('PygWalker', icon='plugin'),
-        sac.MenuItem('Ask AI', icon='robot'),
-        sac.MenuItem('My Projects', icon ='card-text'),
-        sac.MenuItem('Ask Me Anything', icon='chat-dots'),
-        sac.MenuItem('YData Profiling', icon='bar-chart-line')
+    sac.MenuItem('Home', icon='house'),
+    sac.MenuItem('DataFrame', icon='speedometer2'),
+    sac.MenuItem('Statistics', icon='plus-slash-minus'),
+    sac.MenuItem('Grapher', icon='graph-up'),
+    # sac.MenuItem('Reshaper', icon='square-half'),
+    sac.MenuItem('PygWalker', icon='plugin'),
+    sac.MenuItem('Ask AI', icon='robot'),
+    sac.MenuItem('My Projects', icon ='card-text'),
+    sac.MenuItem('Ask Me Anything', icon='chat-dots'),
+    sac.MenuItem('YData Profiling', icon='bar-chart-line')  # New menu item
     ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
 
     st.markdown("""
@@ -165,7 +149,6 @@ with st.sidebar:
         <a href="https://www.linkedin.com/in/samsonthedatascientist/">LinkedIn</a>
     </div>
     """, unsafe_allow_html=True)
-
 @st.cache_resource(show_spinner = 0, experimental_allow_widgets=True)
 def home(date):
     st.divider()
@@ -177,7 +160,7 @@ def home(date):
 
         personal_info = load_personal_info()
         st.markdown("### About Me")
-        st.write(personal_info.split('\n\n')[0])
+        st.write(personal_info.split('\n\n')[0])  # Display the first paragraph of your personal info
 
     with col[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694988603751.json"))
@@ -199,6 +182,7 @@ def home(date):
 **[`GitHub Repo Link >`](https://github.com/samsontands)**
     ''')
 
+
     with col[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694988937837.json"))
         st_lottie(load_lottiefile("lottie_files/Animation - 1694989926620.json"), height = 300)
@@ -217,7 +201,6 @@ def home(date):
     ''')
     with col1[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694991370591.json"), height = 150)
-
     st.divider()
     col2 = st.columns([2, 1])
     with col2[0].container():
@@ -555,6 +538,8 @@ elif page == 3:
             with grid_grapher.expander("", expanded = True):
                 try:
                     if name:
+                        # if facet_row is not None or facet_col is not None:
+                        #     raise NotImplementedError
                         fig = px.pie(data_frame = curr_filtered_df, names = name, values = value, color = color, facet_row = facet_row, facet_col = facet_col, height = 750, color_discrete_sequence = colorscales[plot_color])
                         st.plotly_chart(fig, use_container_width = True)
                     else:
@@ -576,6 +561,7 @@ elif page == 3:
             with grid_grapher.expander("", expanded = True):
                 try:
                     if dimensions:
+                        # fig = px.scatter_matrix(data_frame = curr_filtered_df, dimensions = dimensions, color = color, height = 750, color_continuous_scale = colorscales[plot_color])
                         fig = ff.create_scatterplotmatrix(curr_filtered_df[dimensions], diag = diag, title = "", index = color, colormap = plot_color, height = 750)
                         st.plotly_chart(fig, use_container_width = True)
                     else:
@@ -772,6 +758,7 @@ elif page == 4:
         st.subheader("**Console Log**", anchor = False)
         st.markdown(f'{log}')
 
+
 elif page == 5:
     if st.session_state.select_df:
         preference_ai = st.radio("**Select your Preference**", options = ["**Ask about the selected Dataframe**", "**Ask how to perform actions on selected Dataframe**"], horizontal = True)
@@ -789,10 +776,10 @@ elif page == 5:
                 log = traceback.format_exc()
         st.subheader("**Console Log**", anchor = False)
         st.markdown(f'{log}')
-
 elif page == 6:
     st.title('My Projects', anchor=False)
 
+    # Custom CSS for better styling and clickable cards
     st.markdown("""
     <style>
     .project-card {
@@ -811,7 +798,7 @@ elif page == 6:
         font-size: 1.2rem;
         font-weight: bold;
         margin-bottom: 0.5rem;
-        color: #333.
+        color: #333;
     }
     .project-description {
         font-size: 0.9rem;
@@ -821,14 +808,15 @@ elif page == 6:
     .project-link {
         font-size: 0.9rem;
         color: #4CAF50;
-        text-decoration: none.
+        text-decoration: none;
     }
     .project-link:hover {
-        text-decoration: underline.
+        text-decoration: underline;
     }
     </style>
     """, unsafe_allow_html=True)
 
+    # Project data
     projects = [
         {
             "title": "Alliance Bank GPT",
@@ -856,8 +844,13 @@ elif page == 6:
         }
     ]
 
+    # Sort projects alphabetically by title
     projects.sort(key=lambda x: x['title'])
+
+    # Create a 2-column layout
     col1, col2 = st.columns(2)
+
+    # Distribute projects across columns
     for i, project in enumerate(projects):
         with col1 if i % 2 == 0 else col2:
             st.markdown(f"""
@@ -869,24 +862,26 @@ elif page == 6:
                 </div>
             </a>
             """, unsafe_allow_html=True)
+
+    # Add some spacing at the bottom
     st.markdown("<br>", unsafe_allow_html=True)
 
-elif page == 7:  # Ask Me Anything
+elif page == 7:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
     
+    # Load necessary configuration files
     with open('config/personal_info.txt', 'r') as f:
         personal_info = f.read()
+
     with open('config/system_prompt.txt', 'r') as f:
         system_prompt = f.read()
     
     user_question = st.text_input("What would you like to know?")
     if user_question:
-        with st.spinner('Getting a quick answer...'):  # shows until first chunk arrives
-            response = stream_groq_response(user_question, system_prompt, personal_info)
-        if response:
-            st.write(response)
+        with st.spinner('Getting a quick answer...'):
+            response = get_groq_response(user_question, system_prompt, personal_info)
+        st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
-
-elif page == 8:  # YData Profiling
+elif page == 8:  # Assuming YData Profiling is the 10th item (index 9) in your menu
     show_eda_tool()
