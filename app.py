@@ -19,6 +19,7 @@ from datetime import datetime
 import requests
 from ydata_profiling import ProfileReport
 import io
+import sketch
 
 os.environ['SKETCH_MAX_COLUMNS'] = '50'
 st.set_page_config(
@@ -54,19 +55,19 @@ def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
 
 # Use your own OpenAI key with a non-deprecated completions model
 if "OPENAI_API_KEY" in st.secrets:
-    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "False"  # don't use the remote default
-    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+    # Default to hosted endpoint (works without any key)
+os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
 
-    # Force LambdaPrompt to use a valid completions model
-    # (gpt-3.5-turbo-instruct is the drop-in replacement for text-davinci-003)
-    os.environ["LAMBDAPROMPT_BACKEND"] = "OpenAI"  # or "OpenAICompletion"
-    os.environ["LAMBDAPROMPT_OPENAI_MODEL"] = "gpt-3.5-turbo-instruct"
+# If you *have* an OpenAI key, let Sketch call OpenAI directly (no model name needed)
+if "OPENAI_API_KEY" in st.secrets and st.secrets["OPENAI_API_KEY"]:
+    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "False"
+    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 else:
     # fallback to Sketch's hosted endpoint (no key needed)
     os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
     
-import sketch
+
 
 
 @st.cache_resource
