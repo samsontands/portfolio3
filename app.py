@@ -53,10 +53,12 @@ def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-# Use your own OpenAI key with a non-deprecated completions model
-if "OPENAI_API_KEY" in st.secrets:
-    # Default to hosted endpoint (works without any key)
+# Use Sketch's hosted endpoint (default)
 os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
+
+# Optional: direct OpenAI calls
+if os.getenv("OPENAI_API_KEY"):
+    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "False"
 
 # If you *have* an OpenAI key, let Sketch call OpenAI directly (no model name needed)
 if "OPENAI_API_KEY" in st.secrets and st.secrets["OPENAI_API_KEY"]:
