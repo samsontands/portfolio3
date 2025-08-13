@@ -53,12 +53,20 @@ def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+# Use your own OpenAI key with a non-deprecated completions model
 if "OPENAI_API_KEY" in st.secrets:
-    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "False"
+    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "False"  # don't use the remote default
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+
+    # Force LambdaPrompt to use a valid completions model
+    # (gpt-3.5-turbo-instruct is the drop-in replacement for text-davinci-003)
+    os.environ["LAMBDAPROMPT_BACKEND"] = "OpenAI"  # or "OpenAICompletion"
+    os.environ["LAMBDAPROMPT_OPENAI_MODEL"] = "gpt-3.5-turbo-instruct"
+
 else:
-    # fall back to Sketch’s remote endpoint (no key needed, but can be rate-limited)
+    # fallback to Sketch's hosted endpoint (no key needed)
     os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
+
 
 @st.cache_resource
 def load_personal_info():
