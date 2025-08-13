@@ -62,9 +62,6 @@ os.environ.pop("LAMBDAPROMPT_OPENAI_MODEL", None)
 
 import sketch
     
-st.write("curr_filtered_df is DataFrame:", isinstance(curr_filtered_df, pd.DataFrame))
-st.write("shape:", getattr(curr_filtered_df, "shape", None))
-st.write("has .sketch accessor:", hasattr(curr_filtered_df, "sketch"))
 
 
 
