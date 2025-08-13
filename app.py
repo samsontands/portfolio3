@@ -28,6 +28,31 @@ st.set_page_config(
     layout="wide"
 )
 
+# ===== Default dataset config =====
+DEFAULT_CSV_NAME = "sample_sales_data.csv"
+# Public repo raw URL example:
+# https://raw.githubusercontent.com/<user>/<repo>/<branch>/path/to/sample_sales_data.csv
+DEFAULT_CSV_URL  = "https://raw.githubusercontent.com/youruser/yourrepo/main/data/sample_sales_data.csv"
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
+    """
+    Load a CSV from a GitHub raw URL.
+    If token is provided (private repo), an authenticated request is used.
+    """
+    try:
+        headers = {}
+        if token:
+            headers["Authorization"] = f"token {token}"
+        # requests is already imported in your file
+        r = requests.get(url, headers=headers, timeout=15)
+        r.raise_for_status()
+        return pd.read_csv(io.StringIO(r.text))
+    except Exception as e:
+        st.warning(f"Could not load default CSV from GitHub: {e}")
+        return pd.DataFrame()
+
+
 @st.cache_resource
 def load_personal_info():
     with open('config/personal_info.txt', 'r') as f:
