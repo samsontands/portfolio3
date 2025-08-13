@@ -1,24 +1,29 @@
-Samson Tan Jia Sheng is a skilled Data Scientist with expertise in Large Language Models (LLM) and the latest AI/ML advancements. 
-He is currently working at Alliance Bank Malaysia Berhad as a Data Scientist since June 2022. 
-His key achievements include:
-- Spearheaded on-premise deployment of AI-powered chatbot for housing discount checks
-- Leveraged AI computer vision techniques to extract data from unstructured sources
-- Developed user-friendly Python applications for cross-departmental PDF customization
-- Conducted training on Tableau and Python for various teams
+Samson Tan Jia Sheng is a results-driven Data Scientist specializing in Large Language Models (LLMs) and cutting-edge AI/ML solutions with a proven track record of delivering impactful, production-ready systems.
+He combines strong technical expertise with a product-oriented mindset to solve complex business problems and drive measurable outcomes.
 
-Previously, he worked at GoGet.my as a Data Scientist from May 2021 to June 2022, where he:
-- Built rider-job-claiming machine learning model improving timeliness
-- Set up and managed Amazon Quicksight visualization dashboard
-- Utilized ARIMA models for forecasting peak season rider demand
+Current Role – Data Scientist, Alliance Bank Malaysia Berhad (June 2022 – Present)
+Key Achievements:
+	•	Led end-to-end on-premise deployment of an AI-powered chatbot for automated housing discount eligibility checks, improving customer response time.
+	•	Applied computer vision techniques to extract structured insights from unstructured documents, enhancing data processing efficiency.
+	•	Built cross-departmental Python applications for automated PDF customization, reducing manual processing time by over 70%.
+	•	Designed and delivered hands-on Tableau and Python training for cross-functional teams, improving data literacy across the organization.
 
-Samson has a Masters in Data Science and Business Analytics (Data Engineering) from Asia Pacific University of Technology and Innovation,
-and a Bachelor of Psychology and Business (Psychology and Econometrics) from Monash University.
+Previous Role – Data Scientist, GoGet.my (May 2021 – June 2022)
+Key Achievements:
+	•	Developed and deployed a machine learning model for rider job allocation, significantly improving delivery timeliness during peak demand.
+	•	Designed and maintained Amazon QuickSight dashboards for real-time operational visibility and decision-making.
+	•	Applied ARIMA forecasting models to predict seasonal rider demand, enabling proactive workforce planning.
 
-His skills include:
-- AI Skills: LLM fine-tuning, Retrieval Augmented Generation (RAG), Machine Learning, Natural Language Processing (NLP), Computer Vision, API integrations and BERT embeddings
-- Languages and Databases: Python, R, SQL, PostgreSQL
-- Frameworks and Tools: RAG, VScode, Anaconda, RStudio, Google Colab, LM Studio, Ollama, Jan, MLX, CUDA, PyTorch
-- LLM Models: Mistral, Mixtral, Meta Llama2, Microsoft Phi2, Google Gemma (Local Offline), OpenAI ChatGPT, GPT-4, GPT-vision, GPT-3.5, GPT-2, GROQ API (Cloud API)
+Education:
+	•	Masters in Data Science & Business Analytics (Data Engineering) – Asia Pacific University of Technology and Innovation
+	•	Bachelor of Psychology & Business (Psychology & Econometrics) – Monash University
 
-Samson is based in Kuala Lumpur, Malaysia and can be contacted at +6011-1122 1128 or samsontands@gmail.com.
-His LinkedIn profile is https://www.linkedin.com/in/samsonthedatascientist/
+Core Skills & Technologies:
+	•	AI/ML Expertise: LLM fine-tuning, Retrieval-Augmented Generation (RAG), Machine Learning, NLP, Computer Vision, API Integrations, BERT embeddings
+	•	Programming & Databases: Python, R, SQL, PostgreSQL
+	•	Frameworks & Tools: RAG, VS Code, Anaconda, RStudio, Google Colab, LM Studio, Ollama, Jan, MLX, CUDA, PyTorch
+	•	LLM Models: Mistral, Mixtral, Meta LLaMA 2, Microsoft Phi-2, Google Gemma (Offline), OpenAI GPT models (GPT-4, GPT-3.5, GPT-2, GPT-Vision), GROQ API
+
+Location: Kuala Lumpur, Malaysia
+📞 +6011-1122 1128 | 📧 samsontands@gmail.com
+🔗 LinkedIn: linkedin.com/in/samsonthedatascientist
