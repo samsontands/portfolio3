@@ -30,60 +30,27 @@ st.set_page_config(
 
 # ===== Default dataset config =====
 DEFAULT_CSV_NAME = "sample_sales_data.csv"
-DEFAULT_CSV_URL  = "https://raw.githubusercontent.com/youruser/yourrepo/main/data/sample_sales_data.csv"
+# Public repo raw URL example:
+# https://raw.githubusercontent.com/<user>/<repo>/<branch>/path/to/sample_sales_data.csv
+DEFAULT_CSV_URL  = "https://github.com/samsontands/portfolio3/blob/main/sample_sales_data.csv"
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def fetch_github_csv(url: str, token: str | None = None):
+def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
     """
-    Robustly load a CSV from a GitHub raw URL (public or private).
-    Returns (df, debug_msg). If df is empty, debug_msg explains why.
+    Load a CSV from a GitHub raw URL.
+    If token is provided (private repo), an authenticated request is used.
     """
-    import io, csv
-    headers = {}
-    if token:
-        headers["Authorization"] = f"token {token}"
-
     try:
-        r = requests.get(url, headers=headers, timeout=20)
+        headers = {}
+        if token:
+            headers["Authorization"] = f"token {token}"
+        # requests is already imported in your file
+        r = requests.get(url, headers=headers, timeout=15)
         r.raise_for_status()
+        return pd.read_csv(io.StringIO(r.text))
     except Exception as e:
-        return pd.DataFrame(), f"HTTP error while downloading: {e}"
-
-    text = r.text
-
-    # Quick guard: make sure we didn't accidentally fetch HTML
-    if "<html" in text.lower() and "github" in text.lower():
-        return pd.DataFrame(), "Fetched HTML (likely not the raw file). Check that you're using the *raw* URL."
-
-    # try a series of parsers
-    attempts = [
-        {"desc": "auto sniff (python engine)", "kwargs": {"sep": None, "engine": "python"}},
-        {"desc": "comma",                     "kwargs": {"sep": ",", "engine": "python"}},
-        {"desc": "semicolon",                 "kwargs": {"sep": ";", "engine": "python"}},
-        {"desc": "tab",                       "kwargs": {"sep": "\t", "engine": "python"}},
-        {"desc": "pipe",                      "kwargs": {"sep": "|", "engine": "python"}},
-        # tolerant mode: skip problematic rows
-        {"desc": "auto+skip bad lines",       "kwargs": {"sep": None, "engine": "python", "on_bad_lines": "skip"}},
-    ]
-
-    errs = []
-    for att in attempts:
-        try:
-            df = pd.read_csv(io.StringIO(text), encoding="utf-8-sig", **att["kwargs"])
-            # Heuristic: if only 1 column but there are commas in the first line, delimiter was wrong
-            if df.shape[1] == 1 and ("," in text.splitlines()[0] or ";" in text.splitlines()[0] or "\t" in text.splitlines()[0]):
-                raise ValueError(f"Parsed as single column with attempt '{att['desc']}'")
-            return df, f"Loaded with: {att['desc']}"
-        except Exception as e:
-            errs.append(f"{att['desc']}: {e}")
-
-    # Couldn’t parse — provide a quick peek at the file head for debugging
-    head_preview = "\n".join(text.splitlines()[:10])
-    debug = "Could not parse CSV with multiple strategies.\n" \
-            + "\n".join(f"- {e}" for e in errs[:5]) \
-            + "\n\nFirst 10 lines preview:\n" + head_preview
-    return pd.DataFrame(), debug
-
+        st.warning(f"Could not load default CSV from GitHub: {e}")
+        return pd.DataFrame()
 
 
 @st.cache_resource
