@@ -53,6 +53,13 @@ def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+if "OPENAI_API_KEY" in st.secrets:
+    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "False"
+    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+else:
+    # fall back to Sketch’s remote endpoint (no key needed, but can be rate-limited)
+    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
+
 @st.cache_resource
 def load_personal_info():
     with open('config/personal_info.txt', 'r') as f:
