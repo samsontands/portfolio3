@@ -87,7 +87,7 @@ def get_groq_response(prompt, system_prompt, personal_info):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "mixtral-8x7b-32768",
+        "model": "openai/gpt-oss-20b",
         "messages": [
             {"role": "system", "content": f"{system_prompt} {personal_info}"},
             {"role": "user", "content": prompt}
