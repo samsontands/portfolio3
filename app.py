@@ -13,7 +13,6 @@ from streamlit_lottie import st_lottie
 import traceback
 from wordcloud import WordCloud
 import pygwalker as pyg
-import sketch
 import os
 import json
 from datetime import datetime
@@ -66,6 +65,8 @@ if "OPENAI_API_KEY" in st.secrets:
 else:
     # fallback to Sketch's hosted endpoint (no key needed)
     os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
+    
+import sketch
 
 
 @st.cache_resource
