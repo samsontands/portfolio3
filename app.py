@@ -20,6 +20,10 @@ import requests
 from ydata_profiling import ProfileReport
 import io
 
+# Guarantee a usable DataFrame handle across pages
+if "curr_filtered_df" not in st.session_state:
+    st.session_state.curr_filtered_df = pd.DataFrame()
+
 os.environ['SKETCH_MAX_COLUMNS'] = '50'
 st.set_page_config(
     page_title="Samson Data Viewer",
