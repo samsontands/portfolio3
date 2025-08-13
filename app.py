@@ -70,6 +70,41 @@ def show_eda_tool():
     else:
         st.warning("Please select a dataframe from the sidebar first.")
 
+def stream_groq_response(prompt, system_prompt, personal_info):
+    """
+    Stream tokens from Groq OSS model and live-update the Streamlit UI.
+    """
+    try:
+        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+        stream = client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[
+                {"role": "system", "content": f"{system_prompt} {personal_info}"},
+                {"role": "user", "content": prompt},
+            ],
+            max_completion_tokens=400,   # adjust if you want longer/shorter answers
+            temperature=0.7,
+            top_p=1.0,
+            reasoning_effort="medium",
+            stream=True,
+        )
+    except Exception as e:
+        st.error(f"Failed to init/call Groq: {e}")
+        return ""
+
+    placeholder = st.empty()
+    chunks = []
+    for chunk in stream:
+        try:
+            delta = chunk.choices[0].delta.content or ""
+        except Exception:
+            delta = ""
+        if delta:
+            chunks.append(delta)
+            placeholder.write("".join(chunks))
+    return "".join(chunks)
+
+
 def get_groq_response(prompt, system_prompt, personal_info):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -914,8 +949,9 @@ elif page == 7:  # Assuming the new menu item is at index 8
     
     user_question = st.text_input("What would you like to know?")
     if user_question:
-        with st.spinner('Getting a quick answer...'):
-            response = get_groq_response(user_question, system_prompt, personal_info)
+    with st.spinner('Getting a quick answer...'):  # shows until first chunk arrives
+        response = stream_groq_response(user_question, system_prompt, personal_info)
+    if response:
         st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
 elif page == 8:  # Assuming YData Profiling is the 10th item (index 9) in your menu
