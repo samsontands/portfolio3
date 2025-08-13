@@ -53,20 +53,13 @@ def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-# Use Sketch's hosted endpoint (default)
-os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
-
-# Optional: direct OpenAI calls
-if os.getenv("OPENAI_API_KEY"):
-    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "False"
-
-# If you *have* an OpenAI key, let Sketch call OpenAI directly (no model name needed)
-if "OPENAI_API_KEY" in st.secrets and st.secrets["OPENAI_API_KEY"]:
+# Use hosted endpoint by default (no key needed)
+if st.secrets.get("OPENAI_API_KEY"):
+    # Use your own OpenAI key directly
     os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "False"
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-
 else:
-    # fallback to Sketch's hosted endpoint (no key needed)
+    # Hosted endpoint (prompts.approx.dev)
     os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
     
 
@@ -886,21 +879,37 @@ elif page == 4:
 
 elif page == 5:
     if st.session_state.select_df:
-        preference_ai = st.radio("**Select your Preference**", options = ["**Ask about the selected Dataframe**", "**Ask how to perform actions on selected Dataframe**"], horizontal = True)
-        prompt = st.text_area("Enter Promt", placeholder = "Enter your promt", label_visibility="collapsed")
-        proceed_ai = st.button("Continue", key = 'ask_ai')
-        with st.expander("**AI says**", expanded = True):
+        preference_ai = st.radio(
+            "**Select your Preference**",
+            options=["**Ask about the selected Dataframe**", "**Ask how to perform actions on selected Dataframe**"],
+            horizontal=True
+        )
+        prompt = st.text_area("Enter Prompt", placeholder="e.g., Which columns are numeric?", label_visibility="collapsed")
+        proceed_ai = st.button("Continue", key='ask_ai')
+
+        with st.expander("**AI says**", expanded=True):
             st.divider()
+            log = ""
             try:
-                if preference_ai == "**Ask about the selected Dataframe**" and prompt and proceed_ai:
-                    st.markdown(curr_filtered_df.sketch.ask(prompt, call_display=False))
-                elif preference_ai == "**Ask how to perform actions on selected Dataframe**" and prompt and proceed_ai:
-                    st.markdown(curr_filtered_df.sketch.howto(prompt, call_display=False))
+                if proceed_ai and prompt:
+                    df_ai = curr_filtered_df
+                    # Ensure the pandas accessor is registered
+                    assert hasattr(df_ai, "sketch"), "pandas .sketch accessor not registered. Ensure `import sketch` ran before DataFrame creation."
+
+                    if preference_ai == "**Ask about the selected Dataframe**":
+                        answer = df_ai.sketch.ask(prompt)   # <-- no call_display
+                        st.markdown(str(answer))
+                    else:
+                        code_ans = df_ai.sketch.howto(prompt)  # <-- no call_display
+                        st.code(str(code_ans), language="python")
+
             except Exception as e:
-                st.dataframe(pd.DataFrame(), use_container_width = True)
                 log = traceback.format_exc()
-        st.subheader("**Console Log**", anchor = False)
-        st.markdown(f'{log}')
+                st.error(f"Ask AI failed: {e}")
+
+        st.subheader("**Console Log**", anchor=False)
+        st.markdown(log if log else "_No errors_")
+
 elif page == 6:
     st.title('My Projects', anchor=False)
 
