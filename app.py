@@ -168,25 +168,53 @@ def get_groq_response(prompt, system_prompt, personal_info):
 with st.sidebar:
     sidebar_animation(datetime.now().date())
 
-    # File upload section
+    # --- File upload OR default from GitHub ---
     if 'file_uploaded' not in st.session_state:
         st.session_state.file_uploaded = False
 
     with st.expander("Upload files", expanded=not st.session_state.file_uploaded):
-        st.session_state.files = st.file_uploader("Upload files", type=["csv"], accept_multiple_files=True, label_visibility='collapsed')
+        st.session_state.files = st.file_uploader(
+            "Upload files", type=["csv"], accept_multiple_files=True, label_visibility='collapsed'
+        )
+
+        st.session_state.file_name = {}
+        loaded_any = False
+
         if st.session_state.files:
-            st.session_state.file_name = {}
-            for i in range(0, len(st.session_state.files)):
-                st.session_state.file_name[st.session_state.files[i].name] = i
-                if 'csv' in st.session_state.files[i].name or 'CSV' in st.session_state.files[i].name:
-                    st.session_state.files[i] = pd.read_csv(st.session_state.files[i])
-                    st.session_state.files[i]['Row_Number_'] = np.arange(0, len(st.session_state.files[i]))
-            st.session_state.select_df = selectbox("**Select Dataframe**", st.session_state.file_name.keys(), no_selection_label=None)
+            # User uploads override default
+            for i in range(len(st.session_state.files)):
+                uploaded = st.session_state.files[i]
+                st.session_state.file_name[uploaded.name] = i
+                df_tmp = pd.read_csv(uploaded)
+                df_tmp['Row_Number_'] = np.arange(0, len(df_tmp))
+                st.session_state.files[i] = df_tmp
+            loaded_any = True
+
+        else:
+            # If no uploads, try default GitHub CSV
+            gh_token = st.secrets.get("GITHUB_TOKEN", None)  # only needed for private repos
+            df_default = fetch_github_csv(DEFAULT_CSV_URL, token=gh_token)
+
+            if not df_default.empty:
+                df_default['Row_Number_'] = np.arange(0, len(df_default))
+                st.session_state.files = [df_default]
+                st.session_state.file_name = {DEFAULT_CSV_NAME: 0}
+                loaded_any = True
+            else:
+                # No uploads and default failed
+                st.session_state.files = []
+                st.session_state.file_name = {}
+
+        if loaded_any:
+            st.session_state.select_df = selectbox(
+                "**Select Dataframe**", st.session_state.file_name.keys(), no_selection_label=None
+            )
             st.session_state.file_uploaded = True
         else:
             st.session_state.select_df = None
             st.session_state.filtered_df = pd.DataFrame()
             st.session_state.file_uploaded = False
+
 
     page = sac.menu([
     sac.MenuItem('Home', icon='house'),
