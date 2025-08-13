@@ -19,7 +19,6 @@ from datetime import datetime
 import requests
 from ydata_profiling import ProfileReport
 import io
-import sketch
 
 os.environ['SKETCH_MAX_COLUMNS'] = '50'
 st.set_page_config(
@@ -53,14 +52,15 @@ def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-# Use hosted endpoint by default (no key needed)
-if st.secrets.get("OPENAI_API_KEY"):
-    # Use your own OpenAI key directly
-    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "False"
-    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-else:
-    # Hosted endpoint (prompts.approx.dev)
-    os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
+# Force Sketch to use its hosted endpoint (no OpenAI)
+os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
+
+# Nuke anything that might push Sketch to OpenAI/HF
+os.environ.pop("OPENAI_API_KEY", None)
+os.environ.pop("LAMBDAPROMPT_BACKEND", None)
+os.environ.pop("LAMBDAPROMPT_OPENAI_MODEL", None)
+
+import sketch
     
 
 
@@ -893,22 +893,23 @@ elif page == 5:
             try:
                 if proceed_ai and prompt:
                     df_ai = curr_filtered_df
-                    # Ensure the pandas accessor is registered
-                    assert hasattr(df_ai, "sketch"), "pandas .sketch accessor not registered. Ensure `import sketch` ran before DataFrame creation."
+                    assert hasattr(df_ai, "sketch"), "pandas .sketch accessor not registered. Ensure `import sketch` ran before DataFrames."
 
                     if preference_ai == "**Ask about the selected Dataframe**":
-                        answer = df_ai.sketch.ask(prompt)   # <-- no call_display
+                        answer = df_ai.sketch.ask(prompt)      # <-- no call_display
                         st.markdown(str(answer))
                     else:
-                        code_ans = df_ai.sketch.howto(prompt)  # <-- no call_display
+                        code_ans = df_ai.sketch.howto(prompt)   # <-- no call_display
                         st.code(str(code_ans), language="python")
 
-            except Exception as e:
+            except Exception:
                 log = traceback.format_exc()
-                st.error(f"Ask AI failed: {e}")
+                st.error(f"Ask AI failed:\n{log}")
 
-        st.subheader("**Console Log**", anchor=False)
-        st.markdown(log if log else "_No errors_")
+        # Optional: show which backend is active (for sanity)
+        backend = "Hosted (prompts.approx.dev)" if os.environ.get("SKETCH_USE_REMOTE_LAMBDAPROMPT") == "True" else "OpenAI"
+        st.caption(f"Sketch backend: {backend}")
+
 
 elif page == 6:
     st.title('My Projects', anchor=False)
