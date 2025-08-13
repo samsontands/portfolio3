@@ -71,21 +71,74 @@ def show_eda_tool():
         st.warning("Please select a dataframe from the sidebar first.")
 
 def get_groq_response(prompt, system_prompt, personal_info):
+    import requests
+    import os
+    import json
+    import streamlit as st
+
+    api_key = st.secrets.get("GROQ_API_KEY", None)
+    if not api_key:
+        st.error("GROQ_API_KEY is missing in Streamlit secrets.")
+        return ""
+
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
-        "Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    data = {
-        "model": "mixtral-8x7b-32768", 
+    payload = {
+        "model": "mixtral-8x7b-32768",
         "messages": [
             {"role": "system", "content": f"{system_prompt} {personal_info}"},
             {"role": "user", "content": prompt}
         ],
-        "max_tokens": 100
+        "max_tokens": 100,
+        "temperature": 0.2
     }
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    return response.json()['choices'][0]['message']['content']
+
+    try:
+        # Use json= so requests sets the header and handles serialization
+        resp = requests.post(url, headers=headers, json=payload, timeout=30)
+
+        # If non-200, try to show API error details
+        if not resp.ok:
+            try:
+                err = resp.json()
+            except ValueError:
+                err = {"error": {"message": resp.text}}
+            msg = err.get("error", {}).get("message", f"HTTP {resp.status_code}")
+            st.error(f"GROQ API returned an error: {msg}")
+            # Optional: show debug info
+            st.caption(f"Debug: status={resp.status_code}, body={err}")
+            return ""
+
+        data = resp.json()
+
+        # Handle unexpected shapes gracefully
+        if "choices" in data and data["choices"]:
+            content = (
+                data["choices"][0]
+                .get("message", {})
+                .get("content", "")
+            )
+            if not content:
+                st.warning("Groq returned an empty message content.")
+            return content
+
+        # Sometimes API returns {'error': {...}} with 200 (rare, but guard anyway)
+        if "error" in data:
+            st.error(f"GROQ API error: {data['error'].get('message','Unknown error')}")
+            st.caption(f"Debug payload: {data}")
+            return ""
+
+        # Fallback for unknown shapes
+        st.error("Unexpected response from GROQ API (no 'choices').")
+        st.caption(f"Debug payload: {data}")
+        return ""
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Network error calling GROQ API: {e}")
+        return ""
 
 with st.sidebar:
     sidebar_animation(datetime.now().date())
