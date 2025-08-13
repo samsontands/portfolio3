@@ -76,16 +76,51 @@ def get_groq_response(prompt, system_prompt, personal_info):
         "Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}",
         "Content-Type": "application/json"
     }
-    data = {
-        "model": "mixtral-8x7b-32768", 
+    payload = {
+        "model": "mixtral-8x7b-32768",
         "messages": [
             {"role": "system", "content": f"{system_prompt} {personal_info}"},
             {"role": "user", "content": prompt}
         ],
         "max_tokens": 100
     }
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    return response.json()['choices'][0]['message']['content']
+
+    # Use json= (lets requests set headers & encode correctly); add timeout
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=20)
+    except requests.RequestException as e:
+        st.error(f"Network error calling Groq: {e}")
+        return None
+
+    # Non-200 -> show the error body (JSON if possible, else text)
+    if resp.status_code != 200:
+        try:
+            err = resp.json()
+        except ValueError:
+            err = resp.text
+        st.error(f"Groq API error {resp.status_code}: {err}")
+        return None
+
+    # Parse JSON safely
+    try:
+        data = resp.json()
+    except ValueError:
+        st.error(f"Groq returned non-JSON response: {resp.text[:500]}")
+        return None
+
+    # OpenAI-compatible success shapes
+    if isinstance(data, dict) and 'choices' in data and data['choices']:
+        choice0 = data['choices'][0]
+        # Chat format
+        if 'message' in choice0 and 'content' in choice0['message']:
+            return choice0['message']['content']
+        # (Legacy) text format
+        if 'text' in choice0:
+            return choice0['text']
+
+    # Unexpected schema: show what came back to help debug
+    st.error(f"Unexpected response shape from Groq: {data}")
+    return None
 
 with st.sidebar:
     sidebar_animation(datetime.now().date())
