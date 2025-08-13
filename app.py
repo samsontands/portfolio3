@@ -227,18 +227,35 @@ elif page != 6:
             try:
                 st.session_state.filtered_df = st.session_state.files[st.session_state.file_name[st.session_state.select_df]]
                 typess = ['int64', 'float64', 'str', 'bool', 'object', 'timestamp']
-                columns_to_show_df = st.data_editor(pd.DataFrame({"Column Name": st.session_state.filtered_df.drop('Row_Number_', axis = 1).columns.to_list(), "Show?": True, "Convert Type": st.session_state.filtered_df.drop('Row_Number_', axis = 1).dtypes.astype(str)}), column_config = {"Convert Type": st.column_config.SelectboxColumn("Convert Type", options = typess, required=True, default = 5)}, num_rows="fixed", hide_index = True, disabled = ["Columns"], height = 250, use_container_width = True)
+                columns_to_show_df = st.data_editor(
+                    pd.DataFrame({
+                        "Column Name": st.session_state.filtered_df.drop('Row_Number_', axis=1).columns.to_list(),
+                        "Show?": True,
+                        "Convert Type": st.session_state.filtered_df.drop('Row_Number_', axis=1).dtypes.astype(str)
+                    }),
+                    column_config={"Convert Type": st.column_config.SelectboxColumn("Convert Type", options=typess, required=True, default=5)},
+                    num_rows="fixed", hide_index=True, disabled=["Columns"], height=250, use_container_width=True
+                )
                 for i in range(0, columns_to_show_df.shape[0]):
                     if columns_to_show_df["Convert Type"][i] == 'timestamp':
-                        st.session_state.filtered_df[columns_to_show_df["Column Name"][i]] = pd.to_datetime(st.session_state.filtered_df[columns_to_show_df["Column Name"][i]])
+                        st.session_state.filtered_df[columns_to_show_df["Column Name"][i]] = pd.to_datetime(
+                            st.session_state.filtered_df[columns_to_show_df["Column Name"][i]]
+                        )
                     else:
-                        st.session_state.filtered_df[columns_to_show_df["Column Name"][i]] = st.session_state.filtered_df[columns_to_show_df["Column Name"][i]].astype(columns_to_show_df["Convert Type"][i])
+                        st.session_state.filtered_df[columns_to_show_df["Column Name"][i]] = (
+                            st.session_state.filtered_df[columns_to_show_df["Column Name"][i]].astype(
+                                columns_to_show_df["Convert Type"][i]
+                            )
+                        )
                 st.caption("**:red[Note:] Date / Time column will always be converted to Timestamp**")
                 st.session_state.filtered_df = dataframe_explorer(st.session_state.filtered_df, case=False)
-                st.session_state.filtered_df.drop('Row_Number_', axis = 1, inplace = True)
-            except:
+                st.session_state.filtered_df.drop('Row_Number_', axis=1, inplace=True)
+                curr_filtered_df = st.session_state.filtered_df[
+                    columns_to_show_df[columns_to_show_df['Show?'] == True]['Column Name'].to_list()
+                ]
+            except Exception:
                 log = traceback.format_exc()
-            curr_filtered_df = st.session_state.filtered_df[columns_to_show_df[columns_to_show_df['Show?'] == True]['Column Name'].to_list()]
+                curr_filtered_df = pd.DataFrame()
 
 if page == 1:
     st.write("")
