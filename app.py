@@ -64,6 +64,39 @@ os.environ.pop("OPENAI_API_KEY", None)
 os.environ.pop("LAMBDAPROMPT_BACKEND", None)
 os.environ.pop("LAMBDAPROMPT_OPENAI_MODEL", None)
 
+
+# --- Async loop bootstrap (must be before importing `sketch`) ---
+import asyncio, os
+import streamlit as st
+
+# Force Sketch to use hosted backend (no OpenAI key needed)
+os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
+os.environ.pop("OPENAI_API_KEY", None)
+os.environ.pop("LAMBDAPROMPT_BACKEND", None)
+os.environ.pop("LAMBDAPROMPT_OPENAI_MODEL", None)
+os.environ.setdefault("SKETCH_MAX_COLUMNS", "50")
+
+def ensure_event_loop():
+    # Windows compatibility
+    if os.name == "nt":
+        try:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except Exception:
+            pass
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        # Keep a reference across Streamlit re-runs so it isn't GC'd
+        st.session_state.setdefault("_app_event_loop", loop)
+
+ensure_event_loop()
+
+# Safe to import after the loop exists
+import sketch  # registers pandas .sketch accessor
+
 import sketch
     
 
