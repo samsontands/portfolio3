@@ -32,7 +32,7 @@ st.set_page_config(
 DEFAULT_CSV_NAME = "sample_sales_data.csv"
 # Public repo raw URL example:
 # https://raw.githubusercontent.com/<user>/<repo>/<branch>/path/to/sample_sales_data.csv
-DEFAULT_CSV_URL  = "https://raw.githubusercontent.com/youruser/yourrepo/main/data/sample_sales_data.csv"
+DEFAULT_CSV_URL  = "https://github.com/samsontands/portfolio3/blob/main/sample_sales_data.csv"
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
