@@ -20,6 +20,78 @@ import requests
 from ydata_profiling import ProfileReport
 import io
 
+# --- Additions for OpenAI + .env Ask CSV ---
+from typing import Optional
+from dotenv import load_dotenv
+
+# Prefer new OpenAI SDK; fallback to legacy
+try:
+    from openai import OpenAI  # >=1.0
+    _NEW_OPENAI_SDK = True
+except Exception:
+    import openai  # legacy
+    _NEW_OPENAI_SDK = False
+
+# Load .env (won’t override real env vars)
+load_dotenv(override=False)
+
+def _get_openai_api_key() -> Optional[str]:
+    key = os.getenv("OPENAI_API_KEY")
+    if key:
+        return key
+    try:
+        return st.secrets.get("openai_api_key", None)
+    except Exception:
+        return None
+
+_openai_client = None
+def _ensure_openai_client():
+    global _openai_client
+    if _openai_client is None:
+        api_key = _get_openai_api_key()
+        if not api_key:
+            st.error("OpenAI API key not found. Set OPENAI_API_KEY in .env or 'openai_api_key' in Streamlit secrets.")
+            st.stop()
+        _openai_client = OpenAI(api_key=api_key)
+    return _openai_client
+
+def generate_gpt_response(gpt_input: str, max_tokens: int) -> str:
+    api_key = _get_openai_api_key()
+    if not api_key:
+        st.error("OpenAI API key not found. Set OPENAI_API_KEY in .env or 'openai_api_key' in Streamlit secrets.")
+        st.stop()
+
+    if _NEW_OPENAI_SDK:
+        client = _ensure_openai_client()
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=max_tokens,
+            temperature=0,
+            messages=[{"role":"user","content":gpt_input}],
+        )
+        return resp.choices[0].message.content.strip()
+    else:
+        openai.api_key = api_key
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            max_tokens=max_tokens,
+            temperature=0,
+            messages=[{"role":"user","content":gpt_input}],
+        )
+        return resp.choices[0].message['content'].strip()
+
+def extract_code(gpt_response: str) -> str:
+    # Pull code from ``` blocks; strip language hints like python/py/sql
+    if "```" in gpt_response:
+        m = re.search(r'```(.*?)```', gpt_response, re.DOTALL)
+        if m:
+            code = m.group(1)
+            code = re.sub(r'^\s*(python|py|sql)\s*\n', '', code, flags=re.IGNORECASE)
+            return code
+    return gpt_response
+
+
+
 # Guarantee a usable DataFrame handle across pages
 if "curr_filtered_df" not in st.session_state:
     st.session_state.curr_filtered_df = pd.DataFrame()
@@ -883,37 +955,110 @@ elif page == 4:
 
 
 elif page == 5:
-    if st.session_state.select_df:
-        preference_ai = st.radio(
-            "**Select your Preference**",
-            options=["**Ask about the selected Dataframe**", "**Ask how to perform actions on selected Dataframe**"],
-            horizontal=True
-        )
-        prompt = st.text_area("Enter Prompt", placeholder="e.g., Which columns are numeric?", label_visibility="collapsed")
-        proceed_ai = st.button("Continue", key='ask_ai')
+    # === Ask CSV (replacing Sketch Ask AI) ===
+    st.title("Ask Your Data (AI) 🔎")
+    st.caption("Type a question and I’ll generate a SQLite query against the filtered DataFrame — or ask me to create a Plotly chart.")
 
-        with st.expander("**AI says**", expanded=True):
-            st.divider()
-            log = ""
-            try:
-                if proceed_ai and prompt:
-                    df_ai = curr_filtered_df
-                    assert hasattr(df_ai, "sketch"), "pandas .sketch accessor not registered. Ensure `import sketch` ran before DataFrames."
+    if not st.session_state.select_df:
+        st.warning("Please select a dataframe in the sidebar first.")
+    else:
+        # Use current filtered DF from your app
+        df_ai = st.session_state.get("filtered_df", pd.DataFrame()).copy()
+        if df_ai.empty:
+            st.warning("Your filtered DataFrame is empty. Adjust filters or upload data.")
+        else:
+            # Clean columns for SQL friendliness
+            df_ai = df_ai.reset_index(drop=True)
+            df_ai.columns = df_ai.columns.str.replace(' ', '_', regex=False)
 
-                    if preference_ai == "**Ask about the selected Dataframe**":
-                        answer = df_ai.sketch.ask(prompt)      # <-- no call_display
-                        st.markdown(str(answer))
-                    else:
-                        code_ans = df_ai.sketch.howto(prompt)   # <-- no call_display
-                        st.code(str(code_ans), language="python")
+            tabs = st.tabs(["Ask (SQL)", "Create a chart"])
+            # ------------------------------
+            # Tab 1: Ask (SQL -> SQLite)
+            # ------------------------------
+            with tabs[0]:
+                question = st.text_area(
+                    "Ask a concise question. Example: What is the total sales in the USA in 2022?",
+                    value="What is the total sales in the USA in 2022?"
+                )
+                if st.button("Run SQL"):
+                    try:
+                        # create in-memory SQLite from df_ai
+                        conn = sqlite3.connect(":memory:")
+                        table_name = "my_table"
+                        df_ai.to_sql(table_name, conn, if_exists="replace", index=False)
 
-            except Exception:
-                log = traceback.format_exc()
-                st.error(f"Ask AI failed:\n{log}")
+                        cols = ", ".join(df_ai.columns.tolist())
+                        prompt = (
+                            "Write a SQLite query based on this question: {q} "
+                            "The table name is my_table and the table has the following columns: {cols}. "
+                            "Return only a SQL query and nothing else."
+                        ).format(q=question, cols=cols)
 
-        # Optional: show which backend is active (for sanity)
-        backend = "Hosted (prompts.approx.dev)" if os.environ.get("SKETCH_USE_REMOTE_LAMBDAPROMPT") == "True" else "OpenAI"
-        st.caption(f"Sketch backend: {backend}")
+                        sql = generate_gpt_response(prompt, max_tokens=250)
+                        sql = extract_code(sql)
+
+                        with st.expander("SQL used"):
+                            st.code(sql, language="sql")
+
+                        out = pd.read_sql_query(sql, conn)
+                        if out.shape == (1, 1):
+                            st.subheader(f"Answer: {out.iloc[0,0]}")
+                        else:
+                            st.subheader("Result")
+                            st.dataframe(out, use_container_width=True)
+                    except Exception:
+                        st.error("Failed to run the generated SQL. Try rephrasing your question.")
+                        st.code(traceback.format_exc())
+
+            # ------------------------------
+            # Tab 2: Create a chart
+            # ------------------------------
+            with tabs[1]:
+                viz_req = st.text_area(
+                    "Describe the chart you want. Example: Plot total sales by country and product category",
+                    value="Plot total sales by country and product category"
+                )
+
+                if st.button("Generate chart"):
+                    try:
+                        cols = ", ".join(df_ai.columns.tolist())
+                        prompt = (
+                            "Write code in Python using Plotly to address this request: {req} "
+                            "Use the existing dataframe variable named df that has the following columns: {cols}. "
+                            "Do not include any import statements. "
+                            "Do not use animation_group. "
+                            "Use a transparent background. "
+                            "Return only executable code, no explanations."
+                        ).format(req=viz_req, cols=cols)
+
+                        code = generate_gpt_response(prompt, max_tokens=1500)
+                        code = extract_code(code)
+
+                        # Warn if generated code references columns we don’t have
+                        missing = []
+                        for m in re.findall(r'df\[\s*[\'"]([^\'"]+)[\'"]\s*\]', code):
+                            if m not in df_ai.columns:
+                                missing.append(m)
+                        if missing:
+                            st.warning(f"Columns not found in data: {sorted(set(missing))}")
+
+                        # Replace common show() calls with Streamlit plotting
+                        code = re.sub(r'(\b\w+\b)\.show\(\)',
+                                      r"st.plotly_chart(\1, use_container_width=True)", code)
+                        code = re.sub(r'plotly\.io\.show\((\b\w+\b)\)',
+                                      r"st.plotly_chart(\1, use_container_width=True)", code)
+
+                        with st.expander("Code used"):
+                            st.code(code, language="python")
+
+                        # Execute safely with our variables
+                        _locals = {"st": st, "px": px, "go": go, "np": np, "pd": pd, "df": df_ai}
+                        exec(code, {}, _locals)
+
+                    except Exception:
+                        st.error("Chart generation failed. Try a simpler description or different columns.")
+                        st.code(traceback.format_exc())
+
 
 
 elif page == 6:
