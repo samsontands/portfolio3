@@ -32,34 +32,54 @@ try:
 except Exception:
     import openai  # legacy
     _NEW_OPENAI_SDK = False
+# --- OpenAI via Streamlit Secrets ONLY ---
+import re
+from typing import Optional
 
-# Load .env (won’t override real env vars)
-load_dotenv(override=False)
+# Prefer new OpenAI SDK; fallback to legacy
+try:
+    from openai import OpenAI  # >= 1.0.0
+    _NEW_OPENAI_SDK = True
+except Exception:
+    import openai  # legacy < 1.0.0
+    _NEW_OPENAI_SDK = False
 
 def _get_openai_api_key() -> Optional[str]:
-    key = os.getenv("OPENAI_API_KEY")
-    if key:
-        return key
+    """
+    Fetch the OpenAI API key from Streamlit secrets only.
+    Expect key in .streamlit/secrets.toml as:
+        OPENAI_API_KEY = "sk-..."
+    (fallback to 'openai_api_key' if you prefer lowercase)
+    """
     try:
-        return st.secrets.get("OPENAI_API_KEY ", None)
+        # primary
+        key = st.secrets.get("OPENAI_API_KEY", None)
+        if key:
+            return key
+        # optional fallback
+        return st.secrets.get("openai_api_key", None)
     except Exception:
         return None
 
 _openai_client = None
 def _ensure_openai_client():
+    """Create and cache the OpenAI client when using the new SDK."""
     global _openai_client
     if _openai_client is None:
         api_key = _get_openai_api_key()
         if not api_key:
-            st.error("OpenAI API key not found. Set OPENAI_API_KEY in .env or 'OPENAI_API_KEY ' in Streamlit secrets.")
+            st.error("OpenAI API key not found in Streamlit secrets (OPENAI_API_KEY).")
             st.stop()
         _openai_client = OpenAI(api_key=api_key)
     return _openai_client
 
 def generate_gpt_response(gpt_input: str, max_tokens: int) -> str:
+    """
+    Call OpenAI using the key from Streamlit secrets.
+    """
     api_key = _get_openai_api_key()
     if not api_key:
-        st.error("OpenAI API key not found. Set OPENAI_API_KEY in .env or 'OPENAI_API_KEY ' in Streamlit secrets.")
+        st.error("OpenAI API key not found in Streamlit secrets (OPENAI_API_KEY).")
         st.stop()
 
     if _NEW_OPENAI_SDK:
@@ -68,28 +88,31 @@ def generate_gpt_response(gpt_input: str, max_tokens: int) -> str:
             model="gpt-4o-mini",
             max_tokens=max_tokens,
             temperature=0,
-            messages=[{"role":"user","content":gpt_input}],
+            messages=[{"role": "user", "content": gpt_input}],
         )
         return resp.choices[0].message.content.strip()
     else:
-        openai.api_key = api_key
-        resp = openai.ChatCompletion.create(
+        openai.api_key = api_key  # type: ignore[attr-defined]
+        resp = openai.ChatCompletion.create(  # type: ignore[attr-defined]
             model="gpt-3.5-turbo",
             max_tokens=max_tokens,
             temperature=0,
-            messages=[{"role":"user","content":gpt_input}],
+            messages=[{"role": "user", "content": gpt_input}],
         )
-        return resp.choices[0].message['content'].strip()
+        return resp.choices[0].message["content"].strip()
 
 def extract_code(gpt_response: str) -> str:
-    # Pull code from ``` blocks; strip language hints like python/py/sql
+    """
+    Extract code/SQL from ``` blocks and strip language hint.
+    """
     if "```" in gpt_response:
-        m = re.search(r'```(.*?)```', gpt_response, re.DOTALL)
+        m = re.search(r"```(.*?)```", gpt_response, re.DOTALL)
         if m:
             code = m.group(1)
-            code = re.sub(r'^\s*(python|py|sql)\s*\n', '', code, flags=re.IGNORECASE)
+            code = re.sub(r"^\s*(python|py|sql)\s*\n", "", code, flags=re.IGNORECASE)
             return code
     return gpt_response
+
 
 
 
