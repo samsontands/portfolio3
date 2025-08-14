@@ -41,7 +41,7 @@ def _get_openai_api_key() -> Optional[str]:
     if key:
         return key
     try:
-        return st.secrets.get("openai_api_key", None)
+        return st.secrets.get("OPENAI_API_KEY ", None)
     except Exception:
         return None
 
@@ -51,7 +51,7 @@ def _ensure_openai_client():
     if _openai_client is None:
         api_key = _get_openai_api_key()
         if not api_key:
-            st.error("OpenAI API key not found. Set OPENAI_API_KEY in .env or 'openai_api_key' in Streamlit secrets.")
+            st.error("OpenAI API key not found. Set OPENAI_API_KEY in .env or 'OPENAI_API_KEY ' in Streamlit secrets.")
             st.stop()
         _openai_client = OpenAI(api_key=api_key)
     return _openai_client
@@ -59,7 +59,7 @@ def _ensure_openai_client():
 def generate_gpt_response(gpt_input: str, max_tokens: int) -> str:
     api_key = _get_openai_api_key()
     if not api_key:
-        st.error("OpenAI API key not found. Set OPENAI_API_KEY in .env or 'openai_api_key' in Streamlit secrets.")
+        st.error("OpenAI API key not found. Set OPENAI_API_KEY in .env or 'OPENAI_API_KEY ' in Streamlit secrets.")
         st.stop()
 
     if _NEW_OPENAI_SDK:
