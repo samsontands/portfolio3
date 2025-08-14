@@ -19,6 +19,7 @@ from datetime import datetime
 import requests
 from ydata_profiling import ProfileReport
 import io
+import sqlite3
 
 # --- Additions for OpenAI + .env Ask CSV ---
 from typing import Optional
