@@ -1,7 +1,3 @@
-# =======================
-# app.py  (your full app + new RAG tab)
-# =======================
-
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -47,24 +43,6 @@ try:
 except Exception:
     import openai  # legacy < 1.0.0
     _NEW_OPENAI_SDK = False
-
-# ========= NEW: RAG imports (kept scoped & namespaced) =========
-import logging
-import uuid
-from streamlit.web.server.websocket_headers import _get_websocket_headers
-
-from rag import (
-    DEFAULT_PATHWAY_HOST,
-    PATHWAY_HOST,
-    chat_engine as _rag_chat_engine,
-    vector_client as _rag_vector_client,
-)
-from endpoint_utils import get_inputs
-from log_utils import init_pw_log_config
-from llama_index.llms.types import ChatMessage, MessageRole
-from traceloop.sdk import Traceloop
-# ===============================================================
-
 
 def _get_openai_api_key() -> Optional[str]:
     """
@@ -136,6 +114,8 @@ def extract_code(gpt_response: str) -> str:
     return gpt_response
 
 
+
+
 # Guarantee a usable DataFrame handle across pages
 if "curr_filtered_df" not in st.session_state:
     st.session_state.curr_filtered_df = pd.DataFrame()
@@ -149,6 +129,8 @@ st.set_page_config(
 
 # ===== Default dataset config =====
 DEFAULT_CSV_NAME = "sample_sales_data.csv"
+# Public repo raw URL example:
+# https://raw.githubusercontent.com/<user>/<repo>/<branch>/path/to/sample_sales_data.csv
 DEFAULT_CSV_URL  = "https://raw.githubusercontent.com/samsontands/portfolio3/main/sample_sales_data.csv"
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -161,6 +143,7 @@ def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
         headers = {}
         if token:
             headers["Authorization"] = f"token {token}"
+        # requests is already imported in your file
         r = requests.get(url, headers=headers, timeout=15)
         r.raise_for_status()
         return pd.read_csv(io.StringIO(r.text))
@@ -171,18 +154,16 @@ def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
 
 # Force Sketch to use its hosted endpoint (no OpenAI)
 os.environ["SKETCH_USE_REMOTE_LAMBDAPROMPT"] = "True"
+
 # Nuke anything that might push Sketch to OpenAI/HF
 os.environ.pop("OPENAI_API_KEY", None)
 os.environ.pop("LAMBDAPROMPT_BACKEND", None)
 os.environ.pop("LAMBDAPROMPT_OPENAI_MODEL", None)
 
-import sketch
 
-# ========= NEW: RAG helpers =========
-load_dotenv()  # allow PATHWAY_* and APP_NAME from .env (safe to call once)
-logging.basicConfig(level=logging.INFO)
-init_pw_log_config()
-# ====================================
+import sketch
+    
+
 
 
 @st.cache_resource
@@ -203,14 +184,21 @@ def load_lottiefile(filepath: str):
 
 def show_eda_tool():
     st.title('Data Profiling with YData Profiling')
+    
     if st.session_state.select_df:
         df = st.session_state.filtered_df
         st.write(df)
+        
         if st.button("Generate Profiling Report"):
             with st.spinner('Generating profiling report...'):
                 profile = ProfileReport(df, title="Pandas Profiling Report", explorative=True)
+                
+                # Generate the report as a string
                 report_html = profile.to_html()
+                
             st.success('Report generated successfully!')
+            
+            # Provide a download button for the HTML file
             st.download_button(
                 label="Download Profiling Report",
                 data=report_html,
@@ -247,7 +235,10 @@ def get_groq_response(prompt, system_prompt, personal_info):
     }
 
     try:
+        # Use json= so requests sets the header and handles serialization
         resp = requests.post(url, headers=headers, json=payload, timeout=30)
+
+        # If non-200, try to show API error details
         if not resp.ok:
             try:
                 err = resp.json()
@@ -255,153 +246,37 @@ def get_groq_response(prompt, system_prompt, personal_info):
                 err = {"error": {"message": resp.text}}
             msg = err.get("error", {}).get("message", f"HTTP {resp.status_code}")
             st.error(f"GROQ API returned an error: {msg}")
+            # Optional: show debug info
             st.caption(f"Debug: status={resp.status_code}, body={err}")
             return ""
+
         data = resp.json()
+
+        # Handle unexpected shapes gracefully
         if "choices" in data and data["choices"]:
-            content = data["choices"][0].get("message", {}).get("content", "")
+            content = (
+                data["choices"][0]
+                .get("message", {})
+                .get("content", "")
+            )
             if not content:
                 st.warning("Groq returned an empty message content.")
             return content
+
+        # Sometimes API returns {'error': {...}} with 200 (rare, but guard anyway)
         if "error" in data:
             st.error(f"GROQ API error: {data['error'].get('message','Unknown error')}")
             st.caption(f"Debug payload: {data}")
             return ""
+
+        # Fallback for unknown shapes
         st.error("Unexpected response from GROQ API (no 'choices').")
         st.caption(f"Debug payload: {data}")
         return ""
+
     except requests.exceptions.RequestException as e:
         st.error(f"Network error calling GROQ API: {e}")
         return ""
-
-
-# ========= NEW: RAG Tab Renderer =========
-def render_rag_tab():
-    """
-    Self-contained RAG experience embedded as a page.
-    Uses namespaced session_state keys (rag_*) so it won't clash.
-    """
-    st.title("RAG — Chat with your documents (Google Drive & SharePoint) ⚡")
-
-    # Sidebar panel for RAG connections (only shown on this page)
-    with st.sidebar:
-        st.subheader("RAG Connections")
-        DRIVE_URL = os.environ.get(
-            "GDRIVE_FOLDER_URL",
-            "https://drive.google.com/drive/u/0/folders/1cULDv2OaViJBmOfG5WB0oWcgayNrGtVs",
-        )
-        UPLOAD_HTML = f"""
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <a href="{DRIVE_URL}" style="text-decoration:none;">
-            <figure style="display:flex; align-items:center; gap:8px; margin:0;">
-              <img src="./app/static/Google_Drive_logo.png" width="30" alt="Google Drive Logo">
-              <figcaption>Upload (Google Drive)</figcaption>
-            </figure>
-          </a>
-          <a href="https://navalgo.sharepoint.com/:f:/s/ConnectorSandbox/EgBe-VQr9h1IuR7VBeXsRfIBuOYhv-8z02_6zf4uTH8WbQ?e=YmlA05" style="text-decoration:none;">
-            <figure style="display:flex; align-items:center; gap:8px; margin:0;">
-              <img src="./app/static/sharepoint.png" width="30" alt="SharePoint Logo">
-              <figcaption>Upload (SharePoint)</figcaption>
-            </figure>
-          </a>
-        </div>
-        <div style="font-size: 10px; margin-top: 6px;">
-          * These are public folders. Please do not upload confidential files.
-        </div>
-        <div style="height:8px"></div>
-        <a href="https://cloud.pathway.com/?modal=getstarted" style="text-decoration:none;">
-          <button>Connect to your folders with Pathway</button>
-        </a>
-        """
-        if PATHWAY_HOST == DEFAULT_PATHWAY_HOST:
-            st.markdown(UPLOAD_HTML, unsafe_allow_html=True)
-            st.caption("Pathway pipelines ingest GDrive & SharePoint and keep your indexes synced for RAG.")
-        else:
-            st.markdown(f"**Connected to:** `{PATHWAY_HOST}`")
-
-    # One-time bootstrap for the RAG session
-    if "rag_messages" not in st.session_state:
-        # Unique RAG session id + telemetry headers (optional)
-        rag_session_id = "uuid-" + str(uuid.uuid4())
-        Traceloop.set_association_properties({"session_id": rag_session_id})
-        st.session_state["rag_session_id"] = rag_session_id
-
-        try:
-            headers = _get_websocket_headers()
-        except Exception:
-            headers = {}
-
-        logging.info(json.dumps({"_type": "set_session_id", "session_id": rag_session_id}))
-        logging.info(json.dumps({"_type": "set_headers", "headers": headers, "session_id": rag_session_id}))
-
-        # Attach the ready-made RAG engine & client (from rag.py) into this tab
-        st.session_state["rag_chat_engine"] = _rag_chat_engine
-        st.session_state["rag_vector_client"] = _rag_vector_client
-
-        # Seed messages from engine defaults
-        st.session_state["rag_messages"] = [
-            {"role": msg.role, "content": msg.content}
-            for msg in st.session_state.rag_chat_engine.chat_history
-        ]
-
-    # Show most recently indexed files
-    try:
-        last_modified_time, last_indexed_files = get_inputs()
-        df = pd.DataFrame(last_indexed_files, columns=[last_modified_time, "status"])
-        if df.status.isna().any():
-            del df["status"]
-        st.dataframe(df, hide_index=True, height=180, use_container_width=True)
-    except Exception as e:
-        st.warning(f"Could not fetch document list: {e}")
-
-    st.button("⟳ Refresh", use_container_width=False)
-
-    # Chat input for RAG
-    rag_prompt = st.chat_input("Ask about your documents")
-    if rag_prompt:
-        st.session_state.rag_messages.append({"role": "user", "content": rag_prompt})
-        logging.info(json.dumps({"_type": "user_prompt", "prompt": rag_prompt, "session_id": st.session_state.get("rag_session_id", "NULL_SESS")}))
-
-    # Replay conversation
-    for message in st.session_state.rag_messages:
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
-
-    # Generate assistant response if last message is user
-    if st.session_state.rag_messages and st.session_state.rag_messages[-1]["role"] == "user":
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                try:
-                    response = st.session_state.rag_chat_engine.chat(rag_prompt)
-                except Exception as e:
-                    st.error(f"RAG backend error: {e}")
-                    return
-
-                # Parse sources (deduped, filename only)
-                sources = []
-                try:
-                    for source in getattr(response, "source_nodes", []) or []:
-                        full_path = source.metadata.get("path", source.metadata.get("name"))
-                        if not full_path:
-                            continue
-                        name = f"`{full_path.split('/')[-1]}`" if "/" in full_path else f"`{full_path}`"
-                        if name not in sources:
-                            sources.append(name)
-                except Exception as e:
-                    logging.error(json.dumps({"_type": "error", "error": f"Could not parse sources: {e}", "session_id": st.session_state.get("rag_session_id", "NULL_SESS")}))
-
-                sources_text = ", ".join(sources) if sources else "_(No specific documents were cited)_"
-                logging.info(json.dumps({"_type": "llm_response", "response": str(response), "session_id": st.session_state.get("rag_session_id", "NULL_SESS"), "sources": sources}))
-
-                response_text = (
-                    getattr(response, "response", str(response))
-                    + f"\n\nDocuments looked up to obtain this answer: {sources_text}"
-                )
-
-                st.write(response_text)
-                st.session_state.rag_messages.append({"role": "assistant", "content": response_text})
-# ========= /RAG Tab Renderer =========
-
 
 with st.sidebar:
     sidebar_animation(datetime.now().date())
@@ -454,19 +329,17 @@ with st.sidebar:
             st.session_state.file_uploaded = False
 
 
-    # ====== MENU: added 'RAG' as the last item (index 9) ======
     page = sac.menu([
-        sac.MenuItem('Home', icon='house'),
-        sac.MenuItem('DataFrame', icon='speedometer2'),
-        sac.MenuItem('Statistics', icon='plus-slash-minus'),
-        sac.MenuItem('Grapher', icon='graph-up'),
-        # sac.MenuItem('Reshaper', icon='square-half'),
-        sac.MenuItem('PygWalker', icon='plugin'),
-        sac.MenuItem('Ask AI', icon='robot'),
-        sac.MenuItem('My Projects', icon ='card-text'),
-        sac.MenuItem('Ask Me Anything', icon='chat-dots'),
-        sac.MenuItem('YData Profiling', icon='bar-chart-line'),
-        sac.MenuItem('RAG', icon='stack')  # <--- NEW
+    sac.MenuItem('Home', icon='house'),
+    sac.MenuItem('DataFrame', icon='speedometer2'),
+    sac.MenuItem('Statistics', icon='plus-slash-minus'),
+    sac.MenuItem('Grapher', icon='graph-up'),
+    # sac.MenuItem('Reshaper', icon='square-half'),
+    sac.MenuItem('PygWalker', icon='plugin'),
+    sac.MenuItem('Ask AI', icon='robot'),
+    sac.MenuItem('My Projects', icon ='card-text'),
+    sac.MenuItem('Ask Me Anything', icon='chat-dots'),
+    sac.MenuItem('YData Profiling', icon='bar-chart-line')  # New menu item
     ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
 
     st.markdown("""
@@ -489,13 +362,12 @@ with st.sidebar:
         <span>+6011-1122 1128</span>
         <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1haWwiPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgeD0iMiIgeT0iNCIgcng9IjIiLz48cGF0aCBkPSJtMjIgNy0xMCA3TDIgNyIvPjwvc3ZnPg==">
         <span>samsontands@gmail.com</span>
-        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUtbWFwLXBpbiI+PHBhdGggZD0iTTIwIDEwYzAgNi04IDEyLTggMTJzLTgtNi04LTEyYTggOCAwIDAgMSAxNiAwWiIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTAiIHI9IjMiLz48L3N2Zz4=">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1hcC1waW4iPjxwYXRoIGQ9Ik0yMCAxMGMwIDYtOCAxMi04IDEycy04LTYtOC0xMmE4IDggMCAwIDEgMTYgMFoiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSIzIi8+PC9zdmc+">
         <span>Kuala Lumpur, Malaysia</span>
-        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUtbGlua2VkaW4iPjxwYXRoIGQ9Ik0xNiA4YTYgNiAwIDAgMSA2IDZ2N2gtNHYtN2EyIDIgMCAwIDAtMi0yIDIgMiAwIDAgMC0yIDJ2N2gtNHYtN2E2IDYgMCAwIDEgNi02eiIvPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjEyIiB4PSIyIiB5PSI5Ii8+PGNpcmNsZSBjeD0iNCIgY3k9IjQiIHI9IjIiLz48L3N2Zz4=">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWxpbmtlZGluIj48cGF0aCBkPSJNMTYgOGE2IDYgMCAwIDEgNiA2djdoLTR2LTdhMiAyIDAgMCAwLTItMiAyIDIgMCAwIDAtMiAydjdoLTR2LTdhNiA2IDAgMCAxIDYtNnoiLz48cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSIxMiIgeD0iMiIgeT0iOSIvPjxjaXJjbGUgY3g9IjQiIGN5PSI0IiByPSIyIi8+PC9zdmc+">
         <a href="https://www.linkedin.com/in/samsonthedatascientist/">LinkedIn</a>
     </div>
     """, unsafe_allow_html=True)
-
 @st.cache_resource(show_spinner = 0, experimental_allow_widgets=True)
 def home(date):
     st.divider()
@@ -507,7 +379,7 @@ def home(date):
 
         personal_info = load_personal_info()
         st.markdown("### About Me")
-        st.write(personal_info.split('\n\n')[0])
+        st.write(personal_info.split('\n\n')[0])  # Display the first paragraph of your personal info
 
     with col[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694988603751.json"))
@@ -528,6 +400,8 @@ def home(date):
 
 **[`GitHub Repo Link >`](https://github.com/samsontands)**
     ''')
+
+
     with col[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694988937837.json"))
         st_lottie(load_lottiefile("lottie_files/Animation - 1694989926620.json"), height = 300)
@@ -535,6 +409,7 @@ def home(date):
     st.divider()
 
     col1 = st.columns([2, 1])
+
     with col1[0].container():
         st.markdown('''
     ##### 🔮 Future Work
@@ -558,13 +433,11 @@ def home(date):
     with col2[1].container():
         st_lottie(load_lottiefile("lottie_files/Animation - 1694990540946.json"), height = 150)
 
-# ============ PAGE ROUTING ============
 if page == 0:
     st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made by Samson with AI❤️**")
     home(datetime.now().date())
-
-elif page != 6:  # keep your existing behavior for DF setup on most pages
+elif page != 6:
     st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made by Samson with AI❤️**")
     log = ''
@@ -884,6 +757,8 @@ elif page == 3:
             with grid_grapher.expander("", expanded = True):
                 try:
                     if name:
+                        # if facet_row is not None or facet_col is not None:
+                        #     raise NotImplementedError
                         fig = px.pie(data_frame = curr_filtered_df, names = name, values = value, color = color, facet_row = facet_row, facet_col = facet_col, height = 750, color_discrete_sequence = colorscales[plot_color])
                         st.plotly_chart(fig, use_container_width = True)
                     else:
@@ -901,9 +776,11 @@ elif page == 3:
                 color = selectbox('**Select color value (Column should be included as one of the dimension value)**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_11_2',no_selection_label = None)
                 diag = st.selectbox("**Select Diagonal Plot**", ['scatter', 'histogram', 'box'], index = 1, key = 'grid_grapher_11_3')
                 plot_color = st.selectbox("**Select Plot Color Map**", ['Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'], index = 0, key = 'grid_grapher_11_4')
+            
             with grid_grapher.expander("", expanded = True):
                 try:
                     if dimensions:
+                        # fig = px.scatter_matrix(data_frame = curr_filtered_df, dimensions = dimensions, color = color, height = 750, color_continuous_scale = colorscales[plot_color])
                         fig = ff.create_scatterplotmatrix(curr_filtered_df[dimensions], diag = diag, title = "", index = color, colormap = plot_color, height = 750)
                         st.plotly_chart(fig, use_container_width = True)
                     else:
@@ -959,8 +836,134 @@ elif page == 3:
 
 elif page == -1:
     st.write("")
-    # (Reshaper page omitted in your current build)
-    pass
+    reshaper_tabs = sac.segmented(
+    items=[
+        sac.SegmentedItem(label='Pivot'),
+        sac.SegmentedItem(label='Melt'),
+        sac.SegmentedItem(label='Merge'),
+        sac.SegmentedItem(label='Concat'),
+        sac.SegmentedItem(label='Join')
+    ], label=None, position='top', index=0, format_func='title', radius='md', size='md', align='center', direction='horizontal', grow=True, disabled=False, readonly=False, return_index=True)
+    if st.session_state.select_df:  
+        if reshaper_tabs == 0:
+            grid_grapher = grid([1, 2], vertical_align="bottom")
+            with grid_grapher.expander(label = 'Features', expanded = True):
+                index = st.multiselect('**Select index value**', curr_filtered_df.columns.to_list(), key = 'grid_reshaper_1_1', default = None)
+                column = st.multiselect('**Select column value**', curr_filtered_df.columns.to_list(), key = 'grid_reshaper_1_2',default = None)
+                value = st.multiselect("**Select value's value**", curr_filtered_df.columns.to_list(), key = 'grid_reshaper_1_3',default = None)
+                aggfunc = st.selectbox('**Select aggfunc**', ['count','mean', 'median','mode','min','max','sum'], key = 'grid_reshaper_1_4', index = 1)
+            with grid_grapher.expander("", expanded = True):
+                try:
+                    if index or column:
+                        tmp = curr_filtered_df.pivot_table(index = index, columns = column, values = value, aggfunc = aggfunc).copy()
+                        st.dataframe(tmp, height = 750, use_container_width = True)
+                        st.markdown(f"**DataFrame Shape: {tmp.shape[0]} x {tmp.shape[1]}**")
+                        st.download_button(label="**Download Modified DataFrame as CSV**", data = convert_df(tmp), file_name=f"Pivot_{st.session_state.select_df}", mime='text/csv')
+                    else:
+                        st.dataframe(pd.DataFrame(), use_container_width = True)
+                except Exception as e:
+                    st.dataframe(pd.DataFrame(), use_container_width = True)
+                    log = traceback.format_exc()
+            st.subheader("**Console Log**", anchor = False)
+            st.markdown(f'{log}')
+
+        elif reshaper_tabs == 1:
+            grid_grapher = grid([1, 2], vertical_align="bottom")
+            with grid_grapher.expander(label = 'Features', expanded = True):
+                id_vars = st.multiselect('**Select id_vars value**', curr_filtered_df.columns.to_list(), key = 'grid_reshaper_2_1', default = None)
+                value_vars = st.multiselect('**Select value_vars value**', curr_filtered_df.columns.to_list(), key = 'grid_reshaper_2_2', default = None)
+            with grid_grapher.expander("", expanded = True):
+                try:
+                    if id_vars or value_vars:
+                        tmp = curr_filtered_df.melt(id_vars = id_vars, value_vars = value_vars)
+                        st.dataframe(tmp, height = 750, use_container_width = True)
+                        st.markdown(f"**DataFrame Shape: {tmp.shape[0]} x {tmp.shape[1]}**")
+                        st.download_button(label="**Download Modified DataFrame as CSV**", data = convert_df(tmp), file_name=f"Melt_{st.session_state.select_df}", mime='text/csv')
+                    else:
+                        st.dataframe(pd.DataFrame(), use_container_width = True)
+                except Exception as e:
+                    st.dataframe(pd.DataFrame(), use_container_width = True)
+                    log = traceback.format_exc()
+            st.subheader("**Console Log**", anchor = False)
+            st.markdown(f'{log}')
+
+        elif reshaper_tabs == 2:
+            grid_grapher = grid([1, 2], vertical_align="bottom")
+            other_dataframe = pd.DataFrame()
+            with grid_grapher.expander(label = 'Features', expanded = True):
+                other = selectbox("Select other Dataframe", list(filter(lambda x: x != st.session_state.select_df, st.session_state.file_name.keys())), key = 'grid_reshaper_3_1', no_selection_label = None)
+                if other:
+                    other_dataframe = st.session_state.files[st.session_state.file_name[other]].drop('Row_Number_', axis = 1)
+                how = st.selectbox('**Select how**', ['inner', 'left', 'right', 'outer'], key = 'grid_reshaper_3_2', index = 0)
+                left_on = st.multiselect('**Select left on values**', curr_filtered_df.columns.to_list(), key = 'grid_reshaper_3_3',default = None)
+                right_on = st.multiselect('**Select right on values (Other DataFrame)**', other_dataframe.columns.to_list(), key = 'grid_reshaper_3_4',default = None)
+                validate = selectbox('**Select validate**', ['one_to_one', 'one_to_many', 'many_to_one', 'many_to_many'], key = 'grid_reshaper_3_5',no_selection_label = None)
+            with grid_grapher.expander("", expanded = True):
+                try:
+                    if not(other_dataframe.empty) and left_on and right_on:
+                        tmp = curr_filtered_df.merge(right = other_dataframe, how = how, left_on = left_on, right_on = right_on, validate = validate)
+                        st.dataframe(tmp, height = 750, use_container_width = True)
+                        st.markdown(f"**DataFrame Shape: {tmp.shape[0]} x {tmp.shape[1]}**")
+                        st.download_button(label="**Download Modified DataFrame as CSV**", data = convert_df(tmp), file_name=f"Merged_{st.session_state.select_df}", mime='text/csv')
+                    else:
+                        st.dataframe(pd.DataFrame(), use_container_width = True)
+                except Exception as e:
+                    st.dataframe(pd.DataFrame(), use_container_width = True)
+                    log = traceback.format_exc()
+            st.subheader("**Console Log**", anchor = False)
+            st.markdown(f'{log}')
+
+        elif reshaper_tabs == 3:
+            grid_grapher = grid([1, 2], vertical_align="bottom")
+            other_dataframe = []
+            with grid_grapher.expander(label = 'Features', expanded = True):
+                other = st.multiselect("**Select other Dataframe**", list(filter(lambda x: x != st.session_state.select_df, st.session_state.file_name.keys())), key = 'grid_reshaper_4_1', default = None)
+                if other:
+                    other_dataframe = [st.session_state.files[st.session_state.file_name[df]].drop('Row_Number_', axis = 1) for df in other]
+                axis = st.selectbox('**Select axis**', ['0 (rows)', '1 (columns)'], key = 'grid_reshaper_4_2')
+                ignore_index = st.checkbox('Ignore Index ?', key = 'grid_reshaper_4_3')
+            with grid_grapher.expander("", expanded = True):
+                try:
+                    if other_dataframe:
+                        tmp = pd.concat([curr_filtered_df] + other_dataframe, axis = int(axis[0]), ignore_index = ignore_index)
+                        st.dataframe(tmp, height = 750, use_container_width = True)
+                        st.markdown(f"**DataFrame Shape: {tmp.shape[0]} x {tmp.shape[1]}**")
+                        st.download_button(label="**Download Modified DataFrame as CSV**", data = convert_df(tmp), file_name=f"Concat_{st.session_state.select_df}", mime='text/csv')
+                    else:
+                        st.dataframe(pd.DataFrame(), use_container_width = True)
+                except Exception as e:
+                    st.dataframe(pd.DataFrame(), use_container_width = True)
+                    log = traceback.format_exc()
+            st.subheader("**Console Log**", anchor = False)
+            st.markdown(f'{log}')
+
+        elif reshaper_tabs == 4:
+            grid_grapher = grid([1, 2], vertical_align="bottom")
+            other_dataframe = pd.DataFrame()
+            with grid_grapher.expander(label = 'Features', expanded = True):
+                other = selectbox("Select other Dataframe", list(filter(lambda x: x != st.session_state.select_df, st.session_state.file_name.keys())), key = 'grid_reshaper_5_1', no_selection_label = None)
+                if other:
+                    other_dataframe = st.session_state.files[st.session_state.file_name[other]].drop('Row_Number_', axis = 1)
+                how = st.selectbox('**Select how**', ['inner', 'left', 'right', 'outer'], key = 'grid_reshaper_5_2', index = 0)
+                on = selectbox('**Select on values**', curr_filtered_df.columns.to_list(), key = 'grid_reshaper_5_3', no_selection_label = None)
+                lsuffix = st.text_input("**Suffix to use from left frame's overlapping columns**", placeholder = "Enter lsuffix", key = 'grid_reshaper_5_4')
+                rsuffix = st.text_input("**Suffix to use from right frame's overlapping columns**", placeholder = "Enter rsuffix", key = 'grid_reshaper_5_5')
+                sort = st.checkbox('Sort ?', key = 'grid_reshaper_5_6')
+
+            with grid_grapher.expander("", expanded = True):
+                try:
+                    if not(other_dataframe.empty):
+                        tmp = curr_filtered_df.join(other_dataframe, how = how, on = on, lsuffix = lsuffix, rsuffix = rsuffix, sort = sort)
+                        st.dataframe(tmp, height = 750, use_container_width = True)
+                        st.markdown(f"**DataFrame Shape: {tmp.shape[0]} x {tmp.shape[1]}**")
+                        st.download_button(label="**Download Modified DataFrame as CSV**", data = convert_df(tmp), file_name=f"Join_{st.session_state.select_df}", mime='text/csv')
+                    else:
+                        st.dataframe(pd.DataFrame(), use_container_width = True)
+                except Exception as e:
+                    st.dataframe(pd.DataFrame(), use_container_width = True)
+                    log = traceback.format_exc()
+            st.subheader("**Console Log**", anchor = False)
+            st.markdown(f'{log}')
 
 elif page == 4:
     if st.session_state.select_df:
@@ -974,6 +977,7 @@ elif page == 4:
         st.subheader("**Console Log**", anchor = False)
         st.markdown(f'{log}')
 
+
 elif page == 5:
     # === Ask CSV (replacing Sketch Ask AI) ===
     st.title("Ask Your Data (AI) 🔎")
@@ -982,14 +986,19 @@ elif page == 5:
     if not st.session_state.select_df:
         st.warning("Please select a dataframe in the sidebar first.")
     else:
+        # Use current filtered DF from your app
         df_ai = st.session_state.get("filtered_df", pd.DataFrame()).copy()
         if df_ai.empty:
             st.warning("Your filtered DataFrame is empty. Adjust filters or upload data.")
         else:
+            # Clean columns for SQL friendliness
             df_ai = df_ai.reset_index(drop=True)
             df_ai.columns = df_ai.columns.str.replace(' ', '_', regex=False)
 
             tabs = st.tabs(["Ask (SQL)", "Create a chart"])
+            # ------------------------------
+            # Tab 1: Ask (SQL -> SQLite)
+            # ------------------------------
             with tabs[0]:
                 question = st.text_area(
                     "Ask a concise question. Example: What is the total sales in the USA in 2022?",
@@ -997,6 +1006,7 @@ elif page == 5:
                 )
                 if st.button("Run SQL"):
                     try:
+                        # create in-memory SQLite from df_ai
                         conn = sqlite3.connect(":memory:")
                         table_name = "my_table"
                         df_ai.to_sql(table_name, conn, if_exists="replace", index=False)
@@ -1024,6 +1034,9 @@ elif page == 5:
                         st.error("Failed to run the generated SQL. Try rephrasing your question.")
                         st.code(traceback.format_exc())
 
+            # ------------------------------
+            # Tab 2: Create a chart
+            # ------------------------------
             with tabs[1]:
                 viz_req = st.text_area(
                     "Describe the chart you want. Example: Plot total sales by country and product category",
@@ -1045,6 +1058,7 @@ elif page == 5:
                         code = generate_gpt_response(prompt, max_tokens=1500)
                         code = extract_code(code)
 
+                        # Warn if generated code references columns we don’t have
                         missing = []
                         for m in re.findall(r'df\[\s*[\'"]([^\'"]+)[\'"]\s*\]', code):
                             if m not in df_ai.columns:
@@ -1052,6 +1066,7 @@ elif page == 5:
                         if missing:
                             st.warning(f"Columns not found in data: {sorted(set(missing))}")
 
+                        # Replace common show() calls with Streamlit plotting
                         code = re.sub(r'(\b\w+\b)\.show\(\)',
                                       r"st.plotly_chart(\1, use_container_width=True)", code)
                         code = re.sub(r'plotly\.io\.show\((\b\w+\b)\)',
@@ -1060,6 +1075,7 @@ elif page == 5:
                         with st.expander("Code used"):
                             st.code(code, language="python")
 
+                        # Execute safely with our variables
                         _locals = {"st": st, "px": px, "go": go, "np": np, "pd": pd, "df": df_ai}
                         exec(code, {}, _locals)
 
@@ -1067,9 +1083,12 @@ elif page == 5:
                         st.error("Chart generation failed. Try a simpler description or different columns.")
                         st.code(traceback.format_exc())
 
+
+
 elif page == 6:
     st.title('My Projects', anchor=False)
-    # (your projects section unchanged)
+
+    # Custom CSS for better styling and clickable cards
     st.markdown("""
     <style>
     .project-card {
@@ -1106,14 +1125,41 @@ elif page == 6:
     </style>
     """, unsafe_allow_html=True)
 
+    # Project data
     projects = [
-        {"title": "Alliance Bank GPT","description": "A webpage for AI that can answer simple questions and provide information.","image": "https://images.prismic.io/codiste-website/08ac7396-b806-4550-b167-8814f6eb0fe2_What+is+the+difference+between+GPT_+GPT3%2C+GPT+3.5%2C+GPT+turbo+and+GPT-4.png?auto=compress,format","url": "https://alliancegpt.streamlit.app/"},
-        {"title": "Depcreciation Analysis Demo","description": "A website to showcase an analysis to calculate vehicle depreciation","image": "https://static.vecteezy.com/system/resources/previews/005/735/523/original/thin-line-car-icons-set-in-black-background-universal-car-icon-to-use-in-web-and-mobile-ui-car-basic-ui-elements-set-free-vector.jpg","url": "https://depreciationanalysis.streamlit.app/"},
-        {"title": "File Transfer App","description": "A webpage for temporary file transfer.","image": "https://img.freepik.com/premium-photo/cloud-storage-icon-neon-element-black-background-3d-rendering-illustration_567294-1378.jpg?w=740","url": "https://filecpdi.streamlit.app/"},
-        {"title": "Website Scraper POC","description": "A website to showcase web scraper POC","image": "https://miro.medium.com/v2/resize:fit:720/format:webp/1*nKwYuOo-zhF8eHocsR9WvA.png","url": "https://scraperpoc.streamlit.app/"}
+        {
+            "title": "Alliance Bank GPT",
+            "description": "A webpage for AI that can answer simple questions and provide information.",
+            "image": "https://images.prismic.io/codiste-website/08ac7396-b806-4550-b167-8814f6eb0fe2_What+is+the+difference+between+GPT_+GPT3%2C+GPT+3.5%2C+GPT+turbo+and+GPT-4.png?auto=compress,format",
+            "url": "https://alliancegpt.streamlit.app/"
+        },
+        {
+            "title": "File Transfer App",
+            "description": "A webpage for temporary file transfer.",
+            "image": "https://img.freepik.com/premium-photo/cloud-storage-icon-neon-element-black-background-3d-rendering-illustration_567294-1378.jpg?w=740",
+            "url": "https://filecpdi.streamlit.app/"
+        },
+        {
+            "title": "Depcreciation Analysis Demo",
+            "description": "A website to showcase an analysis to calculate vehicle depreciation",
+            "image": "https://static.vecteezy.com/system/resources/previews/005/735/523/original/thin-line-car-icons-set-in-black-background-universal-car-icon-to-use-in-web-and-mobile-ui-car-basic-ui-elements-set-free-vector.jpg",
+            "url": "https://depreciationanalysis.streamlit.app/"
+        },
+        {
+            "title": "Website Scraper POC",
+            "description": "A website to showcase web scraper POC",
+            "image": "https://miro.medium.com/v2/resize:fit:720/format:webp/1*nKwYuOo-zhF8eHocsR9WvA.png",
+            "url": "https://scraperpoc.streamlit.app/"
+        }
     ]
+
+    # Sort projects alphabetically by title
     projects.sort(key=lambda x: x['title'])
+
+    # Create a 2-column layout
     col1, col2 = st.columns(2)
+
+    # Distribute projects across columns
     for i, project in enumerate(projects):
         with col1 if i % 2 == 0 else col2:
             st.markdown(f"""
@@ -1125,25 +1171,26 @@ elif page == 6:
                 </div>
             </a>
             """, unsafe_allow_html=True)
+
+    # Add some spacing at the bottom
     st.markdown("<br>", unsafe_allow_html=True)
 
-elif page == 7:
+elif page == 7:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
+    
+    # Load necessary configuration files
     with open('config/personal_info.txt', 'r') as f:
         personal_info = f.read()
+
     with open('config/system_prompt.txt', 'r') as f:
         system_prompt = f.read()
+    
     user_question = st.text_input("What would you like to know?")
     if user_question:
         with st.spinner('Getting a quick answer...'):
             response = get_groq_response(user_question, system_prompt, personal_info)
         st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
-
-elif page == 8:
+elif page == 8:  # Assuming YData Profiling is the 10th item (index 9) in your menu
     show_eda_tool()
-
-elif page == 9:
-    # =========== NEW PAGE: RAG ===========
-    render_rag_tab()
