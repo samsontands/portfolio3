@@ -20,10 +20,8 @@ import requests
 from ydata_profiling import ProfileReport
 import io
 import sqlite3
-
-# --- Additions for OpenAI + .env Ask CSV ---
+import re
 from typing import Optional
-from dotenv import load_dotenv
 
 # Prefer new OpenAI SDK; fallback to legacy
 try:
@@ -31,17 +29,6 @@ try:
     _NEW_OPENAI_SDK = True
 except Exception:
     import openai  # legacy
-    _NEW_OPENAI_SDK = False
-# --- OpenAI via Streamlit Secrets ONLY ---
-import re
-from typing import Optional
-
-# Prefer new OpenAI SDK; fallback to legacy
-try:
-    from openai import OpenAI  # >= 1.0.0
-    _NEW_OPENAI_SDK = True
-except Exception:
-    import openai  # legacy < 1.0.0
     _NEW_OPENAI_SDK = False
 
 def _get_openai_api_key() -> Optional[str]:
@@ -209,11 +196,6 @@ def show_eda_tool():
         st.warning("Please select a dataframe from the sidebar first.")
 
 def get_groq_response(prompt, system_prompt, personal_info):
-    import requests
-    import os
-    import json
-    import streamlit as st
-
     api_key = st.secrets.get("GROQ_API_KEY", None)
     if not api_key:
         st.error("GROQ_API_KEY is missing in Streamlit secrets.")
