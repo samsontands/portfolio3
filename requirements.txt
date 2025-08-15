@@ -261,3 +261,4 @@ zipp==3.16.2
 ydata-profiling
 llama-index
 llama-index-llms-openai
+pathway
