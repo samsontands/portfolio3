@@ -20,11 +20,6 @@ import requests
 from ydata_profiling import ProfileReport
 import io
 import sqlite3
-# --- RAG (Pathway + LlamaIndex) ---
-from llama_index.retrievers import PathwayRetriever
-from llama_index.chat_engine.condense_plus_context import CondensePlusContextChatEngine
-from llama_index.llms.openai import OpenAI as LI_OpenAI
-
 
 # --- Additions for OpenAI + .env Ask CSV ---
 from typing import Optional
@@ -77,40 +72,6 @@ def _ensure_openai_client():
             st.stop()
         _openai_client = OpenAI(api_key=api_key)
     return _openai_client
-
-@st.cache_resource
-def init_docs_rag():
-    """
-    Build a minimal RAG chat engine that talks to the Pathway Vector Store.
-    Uses OPENAI_API_KEY from Streamlit secrets; Pathway host/port from env.
-    """
-    # 1) ensure OpenAI key (we keep your 'secrets only' policy)
-    api_key = _get_openai_api_key()
-    if not api_key:
-        st.error("OPENAI_API_KEY missing in Streamlit secrets.")
-        st.stop()
-    os.environ["OPENAI_API_KEY"] = api_key  # for llama_index OpenAI wrapper
-
-    # 2) Pathway endpoint (defaults to the public demo index)
-    host = os.getenv("PATHWAY_HOST", "demo-document-indexing.pathway.stream")
-    port = int(os.getenv("PATHWAY_PORT", "80"))
-
-    # 3) Build retriever + chat engine
-    retriever = PathwayRetriever(host=host, port=port)
-    llm = LI_OpenAI(model="gpt-4o-mini")  # fast/cheap; change if you like
-
-    chat_engine = CondensePlusContextChatEngine.from_defaults(
-        retriever=retriever,
-        llm=llm,
-        system_prompt=(
-            "Answer strictly from the retrieved documents. "
-            "If the docs don’t contain the answer, say: "
-            "'The looked-up documents do not provide information about this.'"
-        ),
-        verbose=False,
-    )
-    return chat_engine, host, port
-
 
 def generate_gpt_response(gpt_input: str, max_tokens: int) -> str:
     """
@@ -369,19 +330,17 @@ with st.sidebar:
 
 
     page = sac.menu([
-    sac.MenuItem('Home', icon='house'),                 # 0
-    sac.MenuItem('DataFrame', icon='speedometer2'),     # 1
-    sac.MenuItem('Statistics', icon='plus-slash-minus'),# 2
-    sac.MenuItem('Grapher', icon='graph-up'),           # 3
+    sac.MenuItem('Home', icon='house'),
+    sac.MenuItem('DataFrame', icon='speedometer2'),
+    sac.MenuItem('Statistics', icon='plus-slash-minus'),
+    sac.MenuItem('Grapher', icon='graph-up'),
     # sac.MenuItem('Reshaper', icon='square-half'),
-    sac.MenuItem('PygWalker', icon='plugin'),           # 4
-    sac.MenuItem('Ask AI', icon='robot'),               # 5
-    sac.MenuItem('My Projects', icon ='card-text'),     # 6
-    sac.MenuItem('Ask Me Anything', icon='chat-dots'),  # 7
-    sac.MenuItem('Docs RAG', icon='book'),              # 8  <-- NEW
-    sac.MenuItem('YData Profiling', icon='bar-chart-line')  # 9 (shifted)
+    sac.MenuItem('PygWalker', icon='plugin'),
+    sac.MenuItem('Ask AI', icon='robot'),
+    sac.MenuItem('My Projects', icon ='card-text'),
+    sac.MenuItem('Ask Me Anything', icon='chat-dots'),
+    sac.MenuItem('YData Profiling', icon='bar-chart-line')  # New menu item
     ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
-
 
     st.markdown("""
     <h3 style='text-align: left; margin-bottom: 10px;'>Contact Information</h3>
@@ -1235,48 +1194,3 @@ elif page == 7:  # Assuming the new menu item is at index 8
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
 elif page == 8:  # Assuming YData Profiling is the 10th item (index 9) in your menu
     show_eda_tool()
-
-elif page == 8:  # Docs RAG
-    st.title("Docs RAG — Ask your Google Drive docs")
-    chat_engine, host, port = init_docs_rag()
-
-    st.caption(
-        f"Connected to Pathway Vector Store at **{host}**"
-        + (f":{port}" if port not in (80, 443) else "")
-    )
-
-    # simple per-session chat history just for this tab
-    if "docs_rag_history" not in st.session_state:
-        st.session_state.docs_rag_history = []
-
-    # show history
-    for role, content in st.session_state.docs_rag_history:
-        with st.chat_message(role):
-            st.write(content)
-
-    user_q = st.chat_input("Ask a question about your documents…")
-    if user_q:
-        st.session_state.docs_rag_history.append(("user", user_q))
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking…"):
-                resp = chat_engine.chat(user_q)
-                answer = resp.response
-
-                # show sources (file names)
-                sources = []
-                try:
-                    for sn in getattr(resp, "source_nodes", []) or []:
-                        meta = getattr(sn, "metadata", {}) or {}
-                        path_or_name = meta.get("path") or meta.get("name") or ""
-                        if path_or_name:
-                            fname = path_or_name.split("/")[-1]
-                            if fname not in sources:
-                                sources.append(fname)
-                except Exception:
-                    pass
-
-                if sources:
-                    answer += "\n\n**Sources:** " + ", ".join(f"`{s}`" for s in sources)
-
-                st.write(answer)
-                st.session_state.docs_rag_history.append(("assistant", answer))
