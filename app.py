@@ -1021,8 +1021,8 @@ elif page == 5:
             # ------------------------------
             with tabs[1]:
                 viz_req = st.text_area(
-                    "Describe the chart you want. Example: Plot total sales by country and product category",
-                    value="Plot total sales by country and product category"
+                    "Describe the chart you want. Example: create a pie chart of male vs female.",
+                    value="create a pie chart of male vs female."
                 )
 
                 if st.button("Generate chart"):
