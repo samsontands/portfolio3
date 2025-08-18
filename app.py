@@ -983,7 +983,7 @@ elif page == 5:
             # ------------------------------
             with tabs[0]:
                 question = st.text_area(
-                    "Ask a concise question. Example: what is the average pay of the female?",
+                    "Ask a concise question. Example: What is the average pay of the female?",
                     value="What is the average pay of the female?"
                 )
                 if st.button("Run SQL"):
@@ -1021,8 +1021,8 @@ elif page == 5:
             # ------------------------------
             with tabs[1]:
                 viz_req = st.text_area(
-                    "Describe the chart you want. Example: create a pie chart of male vs female.",
-                    value="create a pie chart of male vs female."
+                    "Describe the chart you want. Example: Create a pie chart of male vs female.",
+                    value="Create a pie chart of male vs female."
                 )
 
                 if st.button("Generate chart"):
