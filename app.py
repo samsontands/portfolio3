@@ -983,8 +983,8 @@ elif page == 5:
             # ------------------------------
             with tabs[0]:
                 question = st.text_area(
-                    "Ask a concise question. Example: What is the total sales in the USA in 2022?",
-                    value="What is the total sales in the USA in 2022?"
+                    "Ask a concise question. Example: what is the average pay of the female?",
+                    value="Wwhat is the average pay of the female?"
                 )
                 if st.button("Run SQL"):
                     try:
