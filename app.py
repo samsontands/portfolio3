@@ -1110,10 +1110,10 @@ elif page == 6:
     # Project data
     projects = [
         {
-            "title": "Retrieval Augmented Generation (RAG)",
-            "description": "A webpage for AI that can query data from your knowledge base.",
+            "title": "Agentic Retrieval Augmented Generation (RAG)",
+            "description": "A webpage for AI with tool use and fact checking",
             "image": "https://images.prismic.io/codiste-website/08ac7396-b806-4550-b167-8814f6eb0fe2_What+is+the+difference+between+GPT_+GPT3%2C+GPT+3.5%2C+GPT+turbo+and+GPT-4.png?auto=compress,format",
-            "url": "https://gdrive-rag.streamlit.app/"
+            "url": "https://agent-rag-ai.streamlit.app/"
         },
         {
             "title": "File Transfer App",
