@@ -1159,7 +1159,7 @@ elif page == 6:
 
 elif page == 7:  # Assuming the new menu item is at index 8
     st.title("Ask Me Anything")
-    st.write("Ask a question to get a brief response about the creator's background, skills, or experience.")
+    st.write("Ask a question to get a brief response about the creator's background, skills, or experience. (Prompt Augmentation)")
     
     # Load necessary configuration files
     with open('config/personal_info.txt', 'r') as f:
