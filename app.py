@@ -441,7 +441,14 @@ def home(date):
 if page == 0:
     st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made by Samson with AI❤️**")
-    home(datetime.now().date())
+    df_snapshot = st.session_state.get("filtered_df")
+    if not isinstance(df_snapshot, pd.DataFrame) or df_snapshot.empty:
+        fallback_df = st.session_state.get("curr_filtered_df")
+        if isinstance(fallback_df, pd.DataFrame) and not fallback_df.empty:
+            df_snapshot = fallback_df
+        else:
+            df_snapshot = None
+    render_home(load_personal_info(), df_snapshot)
 elif page != 6:
     st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made by Samson with AI❤️**")
@@ -524,6 +531,7 @@ elif page == 3:
         if grapher_tabs == 0:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Pick at least one X and Y column. Colour, facets, and sizing are optional refinements.")
                 y = selectbox('**Select y value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_1_1', no_selection_label = None)
                 x = selectbox('**Select x value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_1_2', no_selection_label = None)
                 color = selectbox('**Select color value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_1_3', no_selection_label = None)
@@ -536,16 +544,18 @@ elif page == 3:
                 marginal_y = selectbox('**Select marginal y**', ['histogram', 'rug', 'box', 'violin'], key = 'grid_grapher_1_10', no_selection_label = None)
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_1_11')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
-                    if y:
+                    if x and y:
                         fig = px.scatter(data_frame = curr_filtered_df, x = x, y = y, color = color, symbol = symbol, size = size, trendline = trendline, marginal_x = marginal_x, marginal_y = marginal_y, facet_row = facet_row, facet_col = facet_col, height = 750, render_mode='auto', color_continuous_scale = colorscales[plot_color])
                         fig.update_layout(coloraxis = fig.layout.coloraxis)
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.scatter(height = 750, render_mode='auto'), use_container_width = True)
-                    log = ''
+                        chart_placeholder.info("Choose both X and Y columns to render a scatter plot.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.scatter(height = 750, render_mode='auto'), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the scatter plot with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -553,6 +563,7 @@ elif page == 3:
         elif grapher_tabs == 1:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Line charts need an X axis and one or more Y columns. Aggregations and facets are optional.")
                 y = st.multiselect('**Select y values**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_2_1', default = None)
                 x = selectbox('**Select x value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_2_2',no_selection_label = None)
                 color = selectbox('**Select color value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_2_3',no_selection_label = None)
@@ -561,6 +572,7 @@ elif page == 3:
                 aggregation = selectbox('**Select aggregation**', ['mean', 'median', 'min', 'max', 'sum'], key = 'grid_grapher_2_6',no_selection_label = None)
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_2_7')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
                     line_plot_df = curr_filtered_df.copy()
                     key_cols_line = [val for val in [x, color, facet_row, facet_col] if val is not None]
@@ -569,14 +581,16 @@ elif page == 3:
                             line_plot_df = curr_filtered_df.groupby(key_cols_line).agg(aggregation).reset_index()
                         else:
                             line_plot_df = curr_filtered_df.sort_values(key_cols_line)
-                    if y:
+                    if x and y:
                         fig = px.line(data_frame = line_plot_df, x = x, y = y, color = color, facet_row = facet_row, facet_col = facet_col, render_mode='auto', height = 750, color_discrete_sequence = colorscales[plot_color])
                         fig.update_traces(connectgaps=True)
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.line(height = 750, render_mode='auto'), use_container_width = True)
+                        chart_placeholder.info("Pick an X axis and at least one Y column to draw the line chart.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.line(height = 750, render_mode='auto'), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the line chart with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -584,6 +598,7 @@ elif page == 3:
         elif grapher_tabs == 2:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Provide an X axis and at least one Y column to compare bars. Sorting and aggregation are optional helpers.")
                 y = st.multiselect('**Select y values**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_3_1', default = None)
                 x = selectbox('**Select x value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_3_2',no_selection_label = None)
                 color = selectbox('**Select color value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_3_3',no_selection_label = None)
@@ -593,6 +608,7 @@ elif page == 3:
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_3_7')
                 sort = selectbox('**Select sort type**', ['asc', 'desc'], key = 'grid_grapher_3_8',no_selection_label = None)
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
                     bar_plot_df = curr_filtered_df.copy()
                     key_cols_bar = [val for val in [x, color, facet_row, facet_col] if val is not None]
@@ -606,13 +622,15 @@ elif page == 3:
                             bar_plot_df = bar_plot_df.sort_values(y, ascending=True)
                         else:
                             bar_plot_df = bar_plot_df.sort_values(y, ascending=False)
-                    if y:
+                    if x and y:
                         fig = px.bar(data_frame = bar_plot_df, x = x, y = y, color = color, facet_row = facet_row, facet_col = facet_col, height = 750, color_continuous_scale = colorscales[plot_color])
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                        chart_placeholder.info("Select an X axis and one or more Y columns to draw a bar chart.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the bar chart with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -620,6 +638,7 @@ elif page == 3:
         elif grapher_tabs == 3:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Histograms require at least one column for the X axis. Colour and facets are optional groupings.")
                 x = st.multiselect('**Select x values**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_4_1', default = None)
                 color = selectbox('**Select color values**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_4_2',no_selection_label = None)
                 facet_row = selectbox('**Select facet row values**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_4_3',no_selection_label = None)
@@ -628,14 +647,17 @@ elif page == 3:
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_4_6')
                 cumulative = st.checkbox('Cumulative ?', key = 'grid_grapher_4_7')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
                     if x:
                         fig = px.histogram(data_frame = curr_filtered_df, x = x, color = color, facet_row = facet_row, facet_col = facet_col, marginal = marginal, cumulative = cumulative, height = 750, color_discrete_sequence = colorscales[plot_color])
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                        chart_placeholder.info("Select one or more columns to explore their distributions.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the histogram with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -643,6 +665,7 @@ elif page == 3:
         elif grapher_tabs == 4:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Box plots summarise distributions for one or more Y columns against an optional X grouping.")
                 y = st.multiselect('**Select y values**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_5_1', default = None)
                 x = selectbox('**Select x value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_5_2',no_selection_label = None)
                 color = selectbox('**Select color value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_5_3',no_selection_label = None)
@@ -650,14 +673,17 @@ elif page == 3:
                 facet_col = selectbox('**Select facet col value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_5_5',no_selection_label = None)
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_5_6')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
                     if y:
                         fig = px.box(data_frame = curr_filtered_df, x = x, y = y, color = color, facet_row = facet_row, facet_col = facet_col, height = 750, color_discrete_sequence = colorscales[plot_color])
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.box(height = 750), use_container_width = True)
+                        chart_placeholder.info("Select one or more Y columns to summarise with box plots.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.box(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the box plot with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -665,6 +691,7 @@ elif page == 3:
         elif grapher_tabs == 5:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Violin plots need one or more Y columns. Use the X axis to split groups if desired.")
                 y = st.multiselect('**Select y values**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_6_1', default = None)
                 x = selectbox('**Select x value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_6_2',no_selection_label = None)
                 color = selectbox('**Select color value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_6_3',no_selection_label = None)
@@ -672,14 +699,17 @@ elif page == 3:
                 facet_col = selectbox('**Select facet col value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_6_5',no_selection_label = None)
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_6_6')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
                     if y:
                         fig = px.violin(data_frame = curr_filtered_df, x = x, y = y, color = color, facet_row = facet_row, facet_col = facet_col, height = 750, color_discrete_sequence = colorscales[plot_color])
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.violin(height = 750), use_container_width = True)
+                        chart_placeholder.info("Select one or more Y columns to render violin plots.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.violin(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the violin plot with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -687,20 +717,24 @@ elif page == 3:
         elif grapher_tabs == 6:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("3D scatter plots require X, Y, and Z columns. Colour is optional for highlighting clusters.")
                 y = selectbox('**Select y value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_7_1', no_selection_label = None)
                 x = selectbox('**Select x value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_7_2',no_selection_label = None)
                 z = selectbox('**Select z value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_7_3',no_selection_label = None)
                 color = selectbox('**Select color value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_7_4',no_selection_label = None)
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_7_5')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
-                    if y:
+                    if x and y and z:
                         fig = px.scatter_3d(data_frame = curr_filtered_df, x = x, y = y, z = z, color = color, height = 750, color_discrete_sequence = colorscales[plot_color])
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                        chart_placeholder.info("Select X, Y, and Z columns to generate the 3D scatter plot.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the 3D scatter plot with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -708,6 +742,7 @@ elif page == 3:
         elif grapher_tabs == 7:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Heatmaps require X and Y columns. Provide Z for intensity or leave blank for counts.")
                 y = selectbox('**Select y value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_8_1', no_selection_label = None)
                 x = selectbox('**Select x value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_8_2',no_selection_label = None)
                 z = selectbox('**Select z value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_8_3',no_selection_label = None)
@@ -715,14 +750,17 @@ elif page == 3:
                 facet_col = selectbox('**Select facet col value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_8_5',no_selection_label = None)
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_8_6')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
-                    if y:
+                    if x and y:
                         fig = px.density_heatmap(data_frame = curr_filtered_df, x = x, y = y, z = z, facet_row = facet_row, facet_col = facet_col, height = 750, color_continuous_scale = colorscales[plot_color])
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.density_heatmap(height = 750), use_container_width = True)
+                        chart_placeholder.info("Choose X and Y columns to build the heatmap; Z is optional for weighted values.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.density_heatmap(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the heatmap with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -730,6 +768,7 @@ elif page == 3:
         elif grapher_tabs == 8:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Contour plots require X and Y columns; Z controls colour bands when provided.")
                 y = selectbox('**Select y value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_9_1', no_selection_label = None)
                 x = selectbox('**Select x value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_9_2',no_selection_label = None)
                 z = selectbox('**Select z value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_9_3',no_selection_label = None)
@@ -737,15 +776,18 @@ elif page == 3:
                 facet_col = selectbox('**Select facet col value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_9_5',no_selection_label = None)
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_9_6')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
-                    if y:
+                    if x and y:
                         fig = px.density_contour(data_frame = curr_filtered_df, x = x, y = y, color = z, facet_row = facet_row, facet_col = facet_col, height = 750)
                         fig.update_traces(contours_coloring = 'fill', contours_showlabels = True, colorscale = plot_color)
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.density_contour(height = 750), use_container_width = True)
+                        chart_placeholder.info("Select X and Y columns to display density contours.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.density_contour(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the contour plot with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -753,6 +795,7 @@ elif page == 3:
         elif grapher_tabs == 9:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Pie charts require a label column and a numeric value column. Facets break out multiple pies.")
                 name = selectbox('**Select name value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_10_1', no_selection_label = None)
                 value = selectbox("**Select value's value**", curr_filtered_df.columns.to_list(), key = 'grid_grapher_10_2',no_selection_label = None)
                 color = selectbox('**Select color value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_10_3',no_selection_label = None)
@@ -760,16 +803,17 @@ elif page == 3:
                 facet_col = selectbox('**Select facet col value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_10_5',no_selection_label = None)
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_10_6')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
-                    if name:
-                        # if facet_row is not None or facet_col is not None:
-                        #     raise NotImplementedError
+                    if name and value:
                         fig = px.pie(data_frame = curr_filtered_df, names = name, values = value, color = color, facet_row = facet_row, facet_col = facet_col, height = 750, color_discrete_sequence = colorscales[plot_color])
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.pie(height = 750), use_container_width = True)
+                        chart_placeholder.info("Select a label column and a values column to render the pie chart.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.pie(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the pie chart with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -777,21 +821,24 @@ elif page == 3:
         elif grapher_tabs == 10:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Scatter matrix requires two or more numeric columns in the dimensions selector.")
                 dimensions = st.multiselect('**Select dimensions value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_11_1', default = None)
                 color = selectbox('**Select color value (Column should be included as one of the dimension value)**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_11_2',no_selection_label = None)
                 diag = st.selectbox("**Select Diagonal Plot**", ['scatter', 'histogram', 'box'], index = 1, key = 'grid_grapher_11_3')
                 plot_color = st.selectbox("**Select Plot Color Map**", ['Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'], index = 0, key = 'grid_grapher_11_4')
             
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
                     if dimensions:
-                        # fig = px.scatter_matrix(data_frame = curr_filtered_df, dimensions = dimensions, color = color, height = 750, color_continuous_scale = colorscales[plot_color])
                         fig = ff.create_scatterplotmatrix(curr_filtered_df[dimensions], diag = diag, title = "", index = color, colormap = plot_color, height = 750)
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                        chart_placeholder.info("Select at least two columns to explore their pairwise relationships.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the scatter matrix with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -799,21 +846,25 @@ elif page == 3:
         elif grapher_tabs == 11:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Candlestick charts need time (X) plus Open, High, Low, and Close price columns.")
                 x = selectbox('**Select x value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_12_1', no_selection_label = None)
                 open = selectbox('**Select open value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_12_2',no_selection_label = None)
                 high = selectbox('**Select high value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_12_3',no_selection_label = None)
                 low = selectbox('**Select low value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_12_4',no_selection_label = None)
                 close = selectbox('**Select close value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_12_5',no_selection_label = None)
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
                     if x and open and high and low and close:
                         fig = go.Figure(data=[go.Candlestick(x = curr_filtered_df[x], open = curr_filtered_df[open], high = curr_filtered_df[high], low = curr_filtered_df[low], close = curr_filtered_df[close])])
                         fig.update_layout(height=750)
-                        st.plotly_chart(fig, use_container_width = True)
+                        chart_placeholder.plotly_chart(fig, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.density_contour(height = 750), use_container_width = True)
+                        chart_placeholder.info("Provide X plus Open, High, Low, and Close columns to render the candlestick chart.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.density_contour(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the candlestick chart with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
@@ -821,23 +872,29 @@ elif page == 3:
         elif grapher_tabs == 12:
             grid_grapher = grid([1, 2], vertical_align="bottom")
             with grid_grapher.expander(label = 'Features', expanded = True):
+                st.caption("Pick one or more text columns to build the word cloud. Clean up noisy columns for best results.")
                 words = st.multiselect('**Select words value**', curr_filtered_df.columns.to_list(), key = 'grid_grapher_13_1', default = None)
                 plot_color = st.selectbox("**Select Plot Color Map**", colorscales.keys(), index = 0, key = 'grid_grapher_13_2')
             with grid_grapher.expander("", expanded = True):
+                chart_placeholder = st.empty()
                 try:
                     if words:
-                        if type(words) == str:
+                        if isinstance(words, str):
                             words = [words]
                         text = ' '.join(pd.concat([curr_filtered_df[x].dropna().astype(str) for x in words]))
                         wc = WordCloud(scale=2, collocations=False).generate(text)
-                        st.plotly_chart(px.imshow(wc, color_continuous_scale = colorscales[plot_color]), height = 750, use_container_width = True)
+                        chart_placeholder.plotly_chart(px.imshow(wc, color_continuous_scale = colorscales[plot_color]), height = 750, use_container_width = True)
+                        log = ''
                     else:
-                        st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                        chart_placeholder.info("Select at least one text column to generate the word cloud.")
+                        log = ''
                 except Exception as e:
-                    st.plotly_chart(px.bar(height = 750), use_container_width = True)
+                    chart_placeholder.warning("Unable to render the word cloud with the selected fields.")
                     log = traceback.format_exc()
             st.subheader("**Console Log**", anchor = False)
             st.markdown(f'{log}')
+    else:
+        st.info("Upload a dataset from the sidebar to unlock the grapher templates.")
 
 elif page == -1:
     st.write("")
