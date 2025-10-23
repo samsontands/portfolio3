@@ -1,16 +1,22 @@
 # Samson's Data Viewer
 
-## Description
-Samson's Data Viewer is a powerful web application built with Streamlit for interactive data analysis and visualization. It provides a user-friendly interface for exploring datasets, creating various types of plots, and performing data transformations.
+*A refreshed Streamlit workspace for data storytelling.*
 
-## Features
-- Data upload and selection
-- Interactive data filtering and exploration
-- Various plotting options including scatter, line, bar, histogram, box plots, and more
-- Data reshaping tools (pivot, melt, merge, concat, join)
-- Integration with PygWalker for advanced data exploration
-- AI-powered data insights using Sketch library
-- "Ask Me Anything" feature for project-related queries
+## Description
+Samson's Data Viewer is a Streamlit-powered workspace for rapid exploration, visualization, and storytelling with tabular data. The refreshed interface introduces a cohesive dark theme, guided chart builders, and quick access to personal portfolio links so collaborators can discover the person behind the project.
+
+## Feature Highlights
+- **Conversational analysis powered by Groq and Sketch** for natural-language insights.
+- **Integrated YData Profiling** to generate shareable data quality reports in a single click.
+- **Guided Plotly grapher** with contextual help and empty-state messaging across scatter, bar, heatmap, candlestick, word cloud, and more.
+- **Data transformations and downloads** including filtering, reshaping, and CSV export.
+- **Hero home page** with quick stats, "What's new" updates, and calls to action for portfolio and LinkedIn.
+
+## What's New
+- 🚀 Groq-powered conversations guide chart building and data wrangling.
+- 🧠 Instant data audits through YData Profiling integration.
+- 🎨 Streamlit theme overhaul with custom colors and typography for a cohesive feel.
+- 🧭 Grapher tabs now include contextual hints and empty states so users know which fields to fill before a plot renders.
 
 ## Installation
 
@@ -31,8 +37,8 @@ Samson's Data Viewer is a powerful web application built with Streamlit for inte
    ```
 
 3. Set up environment variables:
-   - Create a `.env` file in the project root
-   - Add your GROQ API key: `GROQ_API_KEY=your_api_key_here`
+   - Add your GROQ API key in Streamlit secrets: `.streamlit/secrets.toml`
+   - (Optional) Add a GitHub token if loading private CSV files.
 
 ## Usage
 1. Run the Streamlit app:
@@ -40,9 +46,8 @@ Samson's Data Viewer is a powerful web application built with Streamlit for inte
    streamlit run app.py
    ```
 
-2. Open your web browser and navigate to `http://localhost:8501`
-
-3. Upload your CSV files and start exploring your data!
+2. Upload a CSV or use the bundled sample dataset from the sidebar.
+3. Explore dataframe views, guided visualizations, Groq-assisted insights, and YData profiling reports.
 
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -51,13 +56,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
-Samson Tan - samsontands@gmail.com
-
-Project Link: [https://github.com/samsontands/portfolio3]([https://github.com/samsontands/portfolio3](https://github.com/samsontands/portfolio3))
-
-## Acknowledgments
-- [Streamlit](https://streamlit.io/)
-- [Pandas](https://pandas.pydata.org/)
-- [Plotly](https://plotly.com/)
-- [PygWalker](https://github.com/Kanaries/pygwalker)
-- [Sketch](https://github.com/approximatelabs/sketch)
+Samson Tan – samsontands@gmail.com  
+LinkedIn: [linkedin.com/in/samsonthedatascientist](https://www.linkedin.com/in/samsonthedatascientist/)
