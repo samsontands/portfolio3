@@ -41,6 +41,7 @@ from app.services.ai import (
     generate_gpt_response,
     get_groq_response,
 )
+from app.ui.home import render_home as render_home_page
 from app.ui.plots import render_grapher_page
 from app.ui.profiling import show_eda_tool
 from config.settings import (
@@ -120,15 +121,6 @@ DATA_PAGES: set[MenuPage] = {
 
 TYPE_OPTIONS: tuple[str, ...] = ("int64", "float64", "str", "bool", "object", "timestamp")
 SIDEBAR_ANIMATION = LOTTIE_DIR / "Animation - 1694990107205.json"
-HOME_ANIMATIONS: dict[str, Path] = {
-    "hero": LOTTIE_DIR / "Animation - 1694988603751.json",
-    "projects_left": LOTTIE_DIR / "Animation - 1694988937837.json",
-    "projects_right": LOTTIE_DIR / "Animation - 1694989926620.json",
-    "contact": LOTTIE_DIR / "Animation - 1694990540946.json",
-    "future": LOTTIE_DIR / "Animation - 1694991370591.json",
-}
-
-
 def configure_environment() -> None:
     """Prepare environment variables so Sketch never calls OpenAI directly."""
 
@@ -664,89 +656,6 @@ def render_ask_me_anything_page() -> None:
     )
 
 
-def render_home() -> None:
-    st.divider()
-    col_main, col_animation = st.columns([5, 1])
-    with col_main:
-        st.markdown(
-            """
-            ##### Hi, I am Samson Tan Jia Sheng 👋
-            #### A Data Scientist From Malaysia
-            **I am passionate about Data Analysis, Data Visualization, Machine Learning, and AI advancements.**
-            """
-        )
-        personal_info = load_personal_info()
-        if personal_info:
-            first_paragraphs = personal_info.split("\n\n", 2)[:2]
-            st.markdown("### About Me")
-            st.write("\n\n".join(first_paragraphs))
-    with col_animation:
-        hero_animation = load_lottiefile(str(HOME_ANIMATIONS["hero"]))
-        if hero_animation:
-            st_lottie(hero_animation)
-
-    st.divider()
-    col_projects_left, col_projects_right = st.columns([2, 1])
-    with col_projects_left:
-        st.markdown(
-            """
-            ##### 🛠️ What You’ll Find Here
-            * Interactive data exploration with dynamic filtering.
-            * Ready-to-use visualisations powered by Plotly.
-            * AI-assisted insights for both SQL queries and charts.
-            * Automated profiling via YData Profiling.
-            """
-        )
-    with col_projects_right:
-        animation = load_lottiefile(str(HOME_ANIMATIONS["projects_left"]))
-        if animation:
-            st_lottie(animation)
-        animation = load_lottiefile(str(HOME_ANIMATIONS["projects_right"]))
-        if animation:
-            st_lottie(animation, height=300)
-
-    st.divider()
-    col_future, col_future_anim = st.columns([2, 1])
-    with col_future:
-        st.markdown(
-            """
-            ##### 🔮 Future Work
-            * Adding code export for graphs and DataFrame transformations.
-            * Introducing query-based filtering.
-            * Expanding error handling and observability.
-            """
-        )
-    with col_future_anim:
-        future_animation = load_lottiefile(str(HOME_ANIMATIONS["future"]))
-        if future_animation:
-            st_lottie(future_animation, height=150)
-
-    st.divider()
-    col_contact, col_contact_anim = st.columns([2, 1])
-    with col_contact:
-        st.markdown(
-            """
-            ##### 📞 Get in Touch
-            * Connect with me on [LinkedIn](https://www.linkedin.com/in/samsonthedatascientist/)
-            * Explore more on [GitHub](https://github.com/samsontands)
-            * Email me at `samsontands@gmail.com`
-            """
-        )
-    with col_contact_anim:
-        contact_animation = load_lottiefile(str(HOME_ANIMATIONS["contact"]))
-        if contact_animation:
-            st_lottie(contact_animation, height=150)
-
-    st.divider()
-    st.markdown(
-        """
-        **If you find this project useful, please consider starring the GitHub repository and sharing it with your network.**
-
-        **[`GitHub Repo Link >`](https://github.com/samsontands)**
-        """
-    )
-
-
 def run() -> None:
     configure_environment()
     st.set_page_config(page_title="Samson Data Viewer", page_icon="📊", layout="wide")
@@ -764,7 +673,29 @@ def run() -> None:
         curr_filtered_df, filter_log = render_data_filters()
 
     if page == MenuPage.HOME:
-        render_home()
+        state = st.session_state
+        current_df: pd.DataFrame | None = state.get("curr_filtered_df")
+
+        if not isinstance(current_df, pd.DataFrame) or current_df.empty:
+            selected_name = state.get("select_df")
+            files = state.get("files")
+            name_map = state.get("file_name")
+
+            if (
+                isinstance(selected_name, str)
+                and isinstance(name_map, dict)
+                and selected_name in name_map
+                and isinstance(files, list)
+            ):
+                index = name_map[selected_name]
+                try:
+                    candidate = files[index]
+                except (IndexError, TypeError):
+                    current_df = None
+                else:
+                    current_df = candidate if isinstance(candidate, pd.DataFrame) else None
+
+        render_home_page(load_personal_info(), current_df)
     elif page == MenuPage.DATAFRAME:
         render_dataframe_page(curr_filtered_df, filter_log)
     elif page == MenuPage.STATISTICS:
