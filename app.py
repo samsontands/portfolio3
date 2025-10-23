@@ -16,12 +16,23 @@ import pygwalker as pyg
 import os
 import json
 from datetime import datetime
+from pathlib import Path
 import requests
 from ydata_profiling import ProfileReport
 import io
 import sqlite3
 import re
 from typing import Optional
+
+from config.settings import (
+    CSV_CACHE_TTL,
+    DEFAULT_CSV_NAME,
+    DEFAULT_CSV_URL,
+    GROQ_API_URL,
+    GROQ_MODEL,
+    LOTTIE_DIR,
+    PERSONAL_INFO_PATH,
+)
 
 # Prefer new OpenAI SDK; fallback to legacy
 try:
@@ -115,12 +126,10 @@ st.set_page_config(
 )
 
 # ===== Default dataset config =====
-DEFAULT_CSV_NAME = "sample_sales_data.csv"
 # Public repo raw URL example:
 # https://raw.githubusercontent.com/<user>/<repo>/<branch>/path/to/sample_sales_data.csv
-DEFAULT_CSV_URL  = "https://raw.githubusercontent.com/samsontands/portfolio3/main/sample_sales_data.csv"
 
-@st.cache_data(show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=False, ttl=CSV_CACHE_TTL)
 def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
     """
     Load a CSV from a GitHub raw URL.
@@ -154,19 +163,21 @@ import sketch
 
 
 @st.cache_resource
-def load_personal_info():
-    with open('config/personal_info.txt', 'r') as f:
-        return f.read()
+def load_personal_info() -> str:
+    return PERSONAL_INFO_PATH.read_text(encoding="utf-8")
 
 @st.cache_resource(show_spinner = 0, experimental_allow_widgets=True)
 def sidebar_animation(date):
-    st_lottie(load_lottiefile("lottie_files/Animation - 1694990107205.json"))
+    st_lottie(load_lottiefile("Animation - 1694990107205.json"))
 
 def convert_df(df, index = False):
     return df.to_csv(index = index).encode('utf-8')
 
-def load_lottiefile(filepath: str):
-    with open(filepath, "r") as f:
+def load_lottiefile(filename: str | Path):
+    lottie_path = Path(filename)
+    if not lottie_path.is_absolute():
+        lottie_path = LOTTIE_DIR / lottie_path
+    with lottie_path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 def show_eda_tool():
@@ -201,13 +212,12 @@ def get_groq_response(prompt, system_prompt, personal_info):
         st.error("GROQ_API_KEY is missing in Streamlit secrets.")
         return ""
 
-    url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "openai/gpt-oss-20b",
+        "model": GROQ_MODEL,
         "messages": [
             {"role": "system", "content": f"{system_prompt} {personal_info}"},
             {"role": "user", "content": prompt}
@@ -218,7 +228,7 @@ def get_groq_response(prompt, system_prompt, personal_info):
 
     try:
         # Use json= so requests sets the header and handles serialization
-        resp = requests.post(url, headers=headers, json=payload, timeout=30)
+        resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
 
         # If non-200, try to show API error details
         if not resp.ok:
@@ -361,10 +371,11 @@ def home(date):
 
         personal_info = load_personal_info()
         st.markdown("### About Me")
-        st.write(personal_info.split('\n\n')[0])  # Display the first paragraph of your personal info
+        first_section = personal_info.split("\n\n")[0] if "\n\n" in personal_info else personal_info
+        st.markdown(first_section, unsafe_allow_html=False)
 
     with col[1].container():
-        st_lottie(load_lottiefile("lottie_files/Animation - 1694988603751.json"))
+        st_lottie(load_lottiefile("Animation - 1694988603751.json"))
 
     st.divider()
 
@@ -385,8 +396,8 @@ def home(date):
 
 
     with col[1].container():
-        st_lottie(load_lottiefile("lottie_files/Animation - 1694988937837.json"))
-        st_lottie(load_lottiefile("lottie_files/Animation - 1694989926620.json"), height = 300)
+        st_lottie(load_lottiefile("Animation - 1694988937837.json"))
+        st_lottie(load_lottiefile("Animation - 1694989926620.json"), height = 300)
 
     st.divider()
 
@@ -401,7 +412,7 @@ def home(date):
     * **More Error Handling**
     ''')
     with col1[1].container():
-        st_lottie(load_lottiefile("lottie_files/Animation - 1694991370591.json"), height = 150)
+        st_lottie(load_lottiefile("Animation - 1694991370591.json"), height = 150)
     st.divider()
     col2 = st.columns([2, 1])
     with col2[0].container():
@@ -413,7 +424,7 @@ def home(date):
         * **Mail me on `samsontands@gmail.com`**
         ''')
     with col2[1].container():
-        st_lottie(load_lottiefile("lottie_files/Animation - 1694990540946.json"), height = 150)
+        st_lottie(load_lottiefile("Animation - 1694990540946.json"), height = 150)
 
 if page == 0:
     st.title("**📋 Samson Data Viewer**", anchor = False)
@@ -1162,9 +1173,7 @@ elif page == 7:  # Assuming the new menu item is at index 8
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience. (Prompt Augmentation)")
     
     # Load necessary configuration files
-    with open('config/personal_info.txt', 'r') as f:
-        personal_info = f.read()
-
+    personal_info = load_personal_info()
     with open('config/system_prompt.txt', 'r') as f:
         system_prompt = f.read()
     
