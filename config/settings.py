@@ -2,6 +2,7 @@
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+CONFIG_DIR = Path(__file__).resolve().parent
 
 ASSETS_DIR = BASE_DIR / "assets"
 LOTTIE_DIR = ASSETS_DIR / "lottie"
@@ -15,3 +16,4 @@ GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "openai/gpt-oss-20b"
 
 PERSONAL_INFO_PATH = CONTENT_DIR / "personal_info.md"
+SYSTEM_PROMPT_PATH = CONFIG_DIR / "system_prompt.txt"

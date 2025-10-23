@@ -32,6 +32,7 @@ from config.settings import (
     GROQ_MODEL,
     LOTTIE_DIR,
     PERSONAL_INFO_PATH,
+    SYSTEM_PROMPT_PATH,
 )
 
 # Prefer new OpenAI SDK; fallback to legacy
@@ -165,6 +166,17 @@ import sketch
 @st.cache_resource
 def load_personal_info() -> str:
     return PERSONAL_INFO_PATH.read_text(encoding="utf-8")
+
+
+@st.cache_resource
+def load_system_prompt() -> str:
+    try:
+        return SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        st.error("System prompt template not found.")
+    except OSError as exc:
+        st.error(f"Unable to read system prompt template: {exc}")
+    return ""
 
 @st.cache_resource(show_spinner = 0, experimental_allow_widgets=True)
 def sidebar_animation(date):
@@ -1174,14 +1186,16 @@ elif page == 7:  # Assuming the new menu item is at index 8
     
     # Load necessary configuration files
     personal_info = load_personal_info()
-    with open('config/system_prompt.txt', 'r') as f:
-        system_prompt = f.read()
-    
+    system_prompt = load_system_prompt()
+
     user_question = st.text_input("What would you like to know?")
     if user_question:
-        with st.spinner('Getting a quick answer...'):
-            response = get_groq_response(user_question, system_prompt, personal_info)
-        st.write(response)
+        if not system_prompt:
+            st.error("System prompt template is missing. Please contact the app administrator.")
+        else:
+            with st.spinner('Getting a quick answer...'):
+                response = get_groq_response(user_question, system_prompt, personal_info)
+            st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
 elif page == 8:  # Assuming YData Profiling is the 10th item (index 9) in your menu
     show_eda_tool()
