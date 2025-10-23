@@ -24,6 +24,8 @@ import sqlite3
 import re
 from typing import Optional
 
+from app.ui.home import render_home
+
 from config.settings import (
     CSV_CACHE_TTL,
     DEFAULT_CSV_NAME,
