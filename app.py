@@ -16,6 +16,7 @@ import pygwalker as pyg
 import os
 import json
 from datetime import datetime
+from pathlib import Path
 import requests
 from ydata_profiling import ProfileReport
 import io
@@ -23,7 +24,16 @@ import sqlite3
 import re
 from typing import Optional
 
-from app.ui.home import render_home
+from config.settings import (
+    CSV_CACHE_TTL,
+    DEFAULT_CSV_NAME,
+    DEFAULT_CSV_URL,
+    GROQ_API_URL,
+    GROQ_MODEL,
+    LOTTIE_DIR,
+    PERSONAL_INFO_PATH,
+    SYSTEM_PROMPT_PATH,
+)
 
 # Prefer new OpenAI SDK; fallback to legacy
 try:
@@ -117,12 +127,10 @@ st.set_page_config(
 )
 
 # ===== Default dataset config =====
-DEFAULT_CSV_NAME = "sample_sales_data.csv"
 # Public repo raw URL example:
 # https://raw.githubusercontent.com/<user>/<repo>/<branch>/path/to/sample_sales_data.csv
-DEFAULT_CSV_URL  = "https://raw.githubusercontent.com/samsontands/portfolio3/main/sample_sales_data.csv"
 
-@st.cache_data(show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=False, ttl=CSV_CACHE_TTL)
 def fetch_github_csv(url: str, token: str | None = None) -> pd.DataFrame:
     """
     Load a CSV from a GitHub raw URL.
@@ -156,19 +164,32 @@ import sketch
 
 
 @st.cache_resource
-def load_personal_info():
-    with open('config/personal_info.txt', 'r') as f:
-        return f.read()
+def load_personal_info() -> str:
+    return PERSONAL_INFO_PATH.read_text(encoding="utf-8")
+
+
+@st.cache_resource
+def load_system_prompt() -> str:
+    try:
+        return SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        st.error("System prompt template not found.")
+    except OSError as exc:
+        st.error(f"Unable to read system prompt template: {exc}")
+    return ""
 
 @st.cache_resource(show_spinner = 0, experimental_allow_widgets=True)
 def sidebar_animation(date):
-    st_lottie(load_lottiefile("lottie_files/Animation - 1694990107205.json"))
+    st_lottie(load_lottiefile("Animation - 1694990107205.json"))
 
 def convert_df(df, index = False):
     return df.to_csv(index = index).encode('utf-8')
 
-def load_lottiefile(filepath: str):
-    with open(filepath, "r") as f:
+def load_lottiefile(filename: str | Path):
+    lottie_path = Path(filename)
+    if not lottie_path.is_absolute():
+        lottie_path = LOTTIE_DIR / lottie_path
+    with lottie_path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 def show_eda_tool():
@@ -203,13 +224,12 @@ def get_groq_response(prompt, system_prompt, personal_info):
         st.error("GROQ_API_KEY is missing in Streamlit secrets.")
         return ""
 
-    url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "openai/gpt-oss-20b",
+        "model": GROQ_MODEL,
         "messages": [
             {"role": "system", "content": f"{system_prompt} {personal_info}"},
             {"role": "user", "content": prompt}
@@ -220,7 +240,7 @@ def get_groq_response(prompt, system_prompt, personal_info):
 
     try:
         # Use json= so requests sets the header and handles serialization
-        resp = requests.post(url, headers=headers, json=payload, timeout=30)
+        resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
 
         # If non-200, try to show API error details
         if not resp.ok:
@@ -326,11 +346,98 @@ with st.sidebar:
     sac.MenuItem('YData Profiling', icon='bar-chart-line')  # New menu item
     ], index=0, format_func='title', size='small', indent=15, open_index=None, open_all=True, return_index=True)
 
-    st.markdown("### Contact")
-    st.markdown("📞 +6011-1122 1128")
-    st.markdown("📧 [samsontands@gmail.com](mailto:samsontands@gmail.com)")
-    st.markdown("📍 Kuala Lumpur, Malaysia")
-    st.markdown("[🔗 LinkedIn](https://www.linkedin.com/in/samsonthedatascientist/)")
+    st.markdown("""
+    <h3 style='text-align: left; margin-bottom: 10px;'>Contact Information</h3>
+    <style>
+        .contact-info {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 5px 10px;
+            align-items: center;
+        }
+        .contact-info img {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+        }
+    </style>
+    <div class="contact-info">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLXBob25lIj48cGF0aCBkPSJNMjIgMTYuOTJ2M2EyIDIgMCAwIDEtMi4xOCAyIDE5Ljc5IDE5Ljc5IDAgMCAxLTguNjMtMy4wNyAxOS41IDE5LjUgMCAwIDEtNi02IDE5Ljc5IDE5Ljc5IDAgMCAxLTMuMDctOC42N0EyIDIgMCAwIDEgNC4xMSAyaDNhMiAyIDAgMCAxIDIgMS43MiAxMi44NCAxMi44NCAwIDAgMCAuNyAyLjgxIDIgMiAwIDAgMS0uNDUgMi4xMUw4LjA5IDkuOTFhMTYgMTYgMCAwIDAgNiA2bDEuMjctMS4yN2EyIDIgMCAwIDEgMi4xMS0uNDUgMTIuODQgMTIuODQgMCAwIDAgMi44MS43QTIgMiAwIDAgMSAyMiAxNi45MnoiLz48L3N2Zz4=">
+        <span>+6011-1122 1128</span>
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1haWwiPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgeD0iMiIgeT0iNCIgcng9IjIiLz48cGF0aCBkPSJtMjIgNy0xMCA3TDIgNyIvPjwvc3ZnPg==">
+        <span>samsontands@gmail.com</span>
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1hcC1waW4iPjxwYXRoIGQ9Ik0yMCAxMGMwIDYtOCAxMi04IDEycy04LTYtOC0xMmE4IDggMCAwIDEgMTYgMFoiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSIzIi8+PC9zdmc+">
+        <span>Kuala Lumpur, Malaysia</span>
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWxpbmtlZGluIj48cGF0aCBkPSJNMTYgOGE2IDYgMCAwIDEgNiA2djdoLTR2LTdhMiAyIDAgMCAwLTItMiAyIDIgMCAwIDAtMiAydjdoLTR2LTdhNiA2IDAgMCAxIDYtNnoiLz48cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSIxMiIgeD0iMiIgeT0iOSIvPjxjaXJjbGUgY3g9IjQiIGN5PSI0IiByPSIyIi8+PC9zdmc+">
+        <a href="https://www.linkedin.com/in/samsonthedatascientist/">LinkedIn</a>
+    </div>
+    """, unsafe_allow_html=True)
+@st.cache_resource(show_spinner = 0, experimental_allow_widgets=True)
+def home(date):
+    st.divider()
+    col = st.columns([5, 1])
+    with col[0].container():
+        st.markdown('''##### Hi, I am Samson Tan Jia Sheng 👋
+                    
+#### A Data Scientist From Malaysia\n**I am passionate about Data Analysis, Data Visualization, Machine Learning, and AI advancements.**''')
+
+        personal_info = load_personal_info()
+        st.markdown("### About Me")
+        first_section = personal_info.split("\n\n")[0] if "\n\n" in personal_info else personal_info
+        st.markdown(first_section, unsafe_allow_html=False)
+
+    with col[1].container():
+        st_lottie(load_lottiefile("Animation - 1694988603751.json"))
+
+    st.divider()
+
+    col = st.columns([2, 1])
+    with col[0].container():
+        st.markdown('''##### :film_projector: About the Project
+**This Pandas DataFrame Viewer is a powerful tool for data analysis and visualization.**
+* **Perform quick and efficient data analysis on your datasets**
+* **Visualize data using various chart types**
+* **Leverage AI for intelligent data insights**
+* **User-friendly interface for both beginners and advanced users**
+* **Incorporates libraries like Streamlit, Pandas, Plotly, and more for robust functionality**
+
+**If you find this project useful, please consider starring the GitHub repository and sharing it with your network.**
+
+**[`GitHub Repo Link >`](https://github.com/samsontands)**
+    ''')
+
+
+    with col[1].container():
+        st_lottie(load_lottiefile("Animation - 1694988937837.json"))
+        st_lottie(load_lottiefile("Animation - 1694989926620.json"), height = 300)
+
+    st.divider()
+
+    col1 = st.columns([2, 1])
+
+    with col1[0].container():
+        st.markdown('''
+    ##### 🔮 Future Work
+
+    * **Adding Code Export for graphs and for changes in dataframe**
+    * **Adding Query based filtering**
+    * **More Error Handling**
+    ''')
+    with col1[1].container():
+        st_lottie(load_lottiefile("Animation - 1694991370591.json"), height = 150)
+    st.divider()
+    col2 = st.columns([2, 1])
+    with col2[0].container():
+        st.markdown('''
+        ##### 📞 Contact with me
+
+        * **Connect with me on [`LinkedIn>`](https://www.linkedin.com/in/samsonthedatascientist/)**
+        * **My Github Profile [`Github>`](https://github.com/samsontands)**
+        * **Mail me on `samsontands@gmail.com`**
+        ''')
+    with col2[1].container():
+        st_lottie(load_lottiefile("Animation - 1694990540946.json"), height = 150)
+
 if page == 0:
     st.title("**📋 Samson Data Viewer**", anchor = False)
     st.caption("**Made by Samson with AI❤️**")
@@ -1135,17 +1242,17 @@ elif page == 7:  # Assuming the new menu item is at index 8
     st.write("Ask a question to get a brief response about the creator's background, skills, or experience. (Prompt Augmentation)")
     
     # Load necessary configuration files
-    with open('config/personal_info.txt', 'r') as f:
-        personal_info = f.read()
+    personal_info = load_personal_info()
+    system_prompt = load_system_prompt()
 
-    with open('config/system_prompt.txt', 'r') as f:
-        system_prompt = f.read()
-    
     user_question = st.text_input("What would you like to know?")
     if user_question:
-        with st.spinner('Getting a quick answer...'):
-            response = get_groq_response(user_question, system_prompt, personal_info)
-        st.write(response)
+        if not system_prompt:
+            st.error("System prompt template is missing. Please contact the app administrator.")
+        else:
+            with st.spinner('Getting a quick answer...'):
+                response = get_groq_response(user_question, system_prompt, personal_info)
+            st.write(response)
     st.caption("Note: Responses are kept brief. For more detailed information, please refer to other sections of the app.")
 elif page == 8:  # Assuming YData Profiling is the 10th item (index 9) in your menu
     show_eda_tool()
